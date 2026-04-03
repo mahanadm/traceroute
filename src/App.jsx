@@ -608,26 +608,28 @@ function AssetsTab() {
 
   return (
     <div>
-      <input
-        type="text"
-        placeholder="Search vendor, model, or serial..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "0.5rem" }}
-      />
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.5rem" }}>
-        {["All", ...CATEGORIES].map((c) => (
-          <button key={c} onClick={() => setFilter(c)} style={pillStyle(filter === c)}>
-            {c}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <input
+          type="text"
+          placeholder="Search vendor, model, or serial..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: "0.5rem", fontSize: "1rem", flex: 1, borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
+        />
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          style={{ padding: "0.5rem", fontSize: "1rem", borderRadius: "6px", border: "1px solid #ccc" }}
+        >
+          <option value="All">All Locations</option>
+          {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+        </select>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "1rem" }}>
-        {["All", ...LOCATIONS].map((l) => (
-          <button key={l} onClick={() => setLocationFilter(l)} style={pillStyle(locationFilter === l)}>
-            {l}
+        {["All", ...CATEGORIES].map((c) => (
+          <button key={c} onClick={() => setFilter(c)} style={pillStyle(filter === c)}>
+            {c}
           </button>
         ))}
       </div>
