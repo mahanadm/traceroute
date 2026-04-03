@@ -191,12 +191,35 @@ function ScanTab() {
   const [form, setForm] = useState({
     vendor: "",
     modelNumber: "",
-    category: CATEGORIES[0],
-    location: LOCATIONS[0],
-    status: STATUSES[0],
+    category: "",
+    location: "",
+    status: "",
     notes: "",
   });
+  const [allAssets, setAllAssets] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [serialInput, setSerialInput] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
   const scannerRef = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "assets"));
+        const list = [];
+        const vendorSet = new Set();
+        snap.forEach((d) => {
+          const data = d.data();
+          list.push({ id: d.id, ...data });
+          if (data.vendor) vendorSet.add(data.vendor);
+        });
+        setAllAssets(list);
+        setVendors([...vendorSet].sort());
+      } catch (err) {
+        console.error("Failed to load assets for autocomplete:", err);
+      }
+    })();
+  }, []);
 
   const handleVideoClick = async (e) => {
     const video = document.querySelector("#reader video");
@@ -284,7 +307,9 @@ function ScanTab() {
     setExistingAsset(null);
     setSaved(false);
     setError(null);
-    setForm({ vendor: "", modelNumber: "", category: CATEGORIES[0], location: LOCATIONS[0], status: STATUSES[0], notes: "" });
+    setForm({ vendor: "", modelNumber: "", category: "", location: "", status: "", notes: "" });
+    setSerialInput("");
+    setSuggestions([]);
   };
 
   const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" };
@@ -298,18 +323,51 @@ function ScanTab() {
           <button onClick={startScan} style={{ padding: "1rem 2rem", fontSize: "1rem", display: "block", marginBottom: "1rem", width: "100%" }}>
             Start Scan
           </button>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input
-              type="text"
-              placeholder="Or type serial number..."
-              onKeyDown={(e) => { if (e.key === "Enter" && e.target.value) setResult(e.target.value); }}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <button
-              onClick={(e) => { const val = e.target.previousSibling.value; if (val) setResult(val); }}
-              style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}>
-              Go
-            </button>
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <input
+                type="text"
+                placeholder="Or type serial number..."
+                value={serialInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSerialInput(val);
+                  if (val.length >= 2) {
+                    const lower = val.toLowerCase();
+                    setSuggestions(allAssets.filter((a) => (a.serialNumber || "").toLowerCase().startsWith(lower)).slice(0, 8));
+                  } else {
+                    setSuggestions([]);
+                  }
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter" && serialInput) { setSuggestions([]); setResult(serialInput); } }}
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <button
+                onClick={() => { if (serialInput) { setSuggestions([]); setResult(serialInput); } }}
+                style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}>
+                Go
+              </button>
+            </div>
+            {suggestions.length > 0 && (
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #ccc", borderRadius: "6px", zIndex: 10, maxHeight: "200px", overflowY: "auto", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
+                {suggestions.map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => {
+                      setSuggestions([]);
+                      setSerialInput("");
+                      setResult(a.serialNumber);
+                      setExistingAsset(a);
+                      setConfirmed(true);
+                    }}
+                    style={{ padding: "0.5rem 0.75rem", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "0.9rem" }}
+                  >
+                    <div style={{ fontWeight: "bold" }}>{a.serialNumber}</div>
+                    <div style={{ fontSize: "0.8rem", color: "#666" }}>{a.vendor} {a.modelNumber}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -369,23 +427,29 @@ function ScanTab() {
           <h3 style={{ margin: "0 0 0.5rem 0" }}>New Asset: {result}</h3>
 
           <label style={labelStyle}>Vendor</label>
-          <input style={inputStyle} value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
+          <input style={inputStyle} list="vendor-suggestions" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
+          <datalist id="vendor-suggestions">
+            {vendors.map((v) => <option key={v} value={v} />)}
+          </datalist>
 
           <label style={labelStyle}>Model Number</label>
           <input style={inputStyle} value={form.modelNumber} onChange={(e) => setForm({ ...form, modelNumber: e.target.value })} />
 
           <label style={labelStyle}>Category</label>
           <select style={inputStyle} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <option value="" disabled>Select category...</option>
             {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
 
           <label style={labelStyle}>Location</label>
           <select style={inputStyle} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}>
+            <option value="" disabled>Select location...</option>
             {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
 
           <label style={labelStyle}>Status</label>
           <select style={inputStyle} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            <option value="" disabled>Select status...</option>
             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
 
