@@ -42,6 +42,144 @@ const LOCATIONS = [
 
 const STATUSES = ["TR Owned", "Loaned Out", "Vendor Loan"];
 
+function ScanAssetDetail({ asset, onDone }) {
+  const [form, setForm] = useState({
+    serialNumber: asset.serialNumber || "",
+    vendor: asset.vendor || "",
+    modelNumber: asset.modelNumber || "",
+    category: asset.category || CATEGORIES[0],
+    location: asset.location || LOCATIONS[0],
+    status: asset.status || STATUSES[0],
+    notes: asset.notes || "",
+    loanDate: asset.loanDate || "",
+    dueBack: asset.dueBack || "",
+    returnedDate: asset.returnedDate || "",
+    loanContact: asset.loanContact || "",
+    customer: asset.customer || "",
+    shipped: asset.shipped || "",
+    trackingNumber: asset.trackingNumber || "",
+  });
+  const [quickLocation, setQuickLocation] = useState(form.location);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" };
+  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem" };
+
+  const handleUpdateLocation = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await updateDoc(doc(db, "assets", asset.id), { location: quickLocation, updatedAt: serverTimestamp() });
+      setForm({ ...form, location: quickLocation });
+      setMessage("Location updated!");
+    } catch (err) {
+      setMessage("Failed to update location.");
+    }
+    setSaving(false);
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await updateDoc(doc(db, "assets", asset.id), { ...form, updatedAt: serverTimestamp() });
+      setMessage("Changes saved!");
+    } catch (err) {
+      setMessage("Failed to save changes.");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ marginTop: "1rem" }}>
+      <div style={{ padding: "0.75rem", background: "#e8f4fd", borderRadius: "8px", marginBottom: "0.75rem" }}>
+        <div style={{ fontWeight: "bold", marginBottom: "0.5rem" }}>Quick Update Location</div>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <select style={{ ...inputStyle, flex: 1 }} value={quickLocation} onChange={(e) => setQuickLocation(e.target.value)}>
+            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+          <button onClick={handleUpdateLocation} disabled={saving} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: "#28a745", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+            {saving ? "..." : "Update Location"}
+          </button>
+        </div>
+      </div>
+
+      {message && (
+        <div style={{ marginBottom: "0.5rem", padding: "0.5rem", background: message.includes("saved") || message.includes("updated") ? "#d4edda" : "#f8d7da", borderRadius: "6px", fontSize: "0.9rem" }}>
+          {message}
+        </div>
+      )}
+
+      <label style={labelStyle}>Serial Number</label>
+      <input style={{ ...inputStyle, background: "#000", color: "#fff" }} value={form.serialNumber} readOnly />
+
+      <label style={labelStyle}>Vendor</label>
+      <input style={inputStyle} value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
+
+      <label style={labelStyle}>Model Number</label>
+      <input style={inputStyle} value={form.modelNumber} onChange={(e) => setForm({ ...form, modelNumber: e.target.value })} />
+
+      <label style={labelStyle}>Category</label>
+      <select style={inputStyle} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
+
+      <label style={labelStyle}>Location</label>
+      <select style={inputStyle} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}>
+        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+      </select>
+
+      <label style={labelStyle}>Status</label>
+      <select style={inputStyle} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+        {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+
+      <label style={labelStyle}>Notes</label>
+      <textarea style={{ ...inputStyle, minHeight: "60px" }} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+
+      <label style={labelStyle}>Loan Date</label>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.loanDate} onChange={(e) => setForm({ ...form, loanDate: e.target.value })} />
+        <button onClick={() => setForm({ ...form, loanDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+      </div>
+
+      <label style={labelStyle}>Due Back</label>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.dueBack} onChange={(e) => setForm({ ...form, dueBack: e.target.value })} />
+        <button onClick={() => setForm({ ...form, dueBack: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+      </div>
+
+      <label style={labelStyle}>Returned Date</label>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.returnedDate} onChange={(e) => setForm({ ...form, returnedDate: e.target.value })} />
+        <button onClick={() => setForm({ ...form, returnedDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+      </div>
+
+      <label style={labelStyle}>Loan Contact</label>
+      <input style={inputStyle} value={form.loanContact} onChange={(e) => setForm({ ...form, loanContact: e.target.value })} />
+
+      <label style={labelStyle}>Customer</label>
+      <input style={inputStyle} value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
+
+      <label style={labelStyle}>Shipped</label>
+      <input style={inputStyle} value={form.shipped} onChange={(e) => setForm({ ...form, shipped: e.target.value })} />
+
+      <label style={labelStyle}>Tracking Number</label>
+      <input style={inputStyle} value={form.trackingNumber} onChange={(e) => setForm({ ...form, trackingNumber: e.target.value })} />
+
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", marginBottom: "1rem" }}>
+        <button onClick={handleSaveAll} disabled={saving} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: "#007bff", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+          {saving ? "Saving..." : "Save All Changes"}
+        </button>
+        <button onClick={onDone} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>
+          Scan Another
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ScanTab() {
   const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
@@ -222,20 +360,8 @@ function ScanTab() {
         </div>
       )}
 
-      {confirmed && existingAsset && (
-        <div style={{ marginTop: "1rem", padding: "1rem", background: "#d4edda", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 0.75rem 0" }}>Asset Found</h3>
-          <div><strong>Serial:</strong> {result}</div>
-          <div><strong>Vendor:</strong> {existingAsset.vendor}</div>
-          <div><strong>Model:</strong> {existingAsset.modelNumber}</div>
-          <div><strong>Category:</strong> {existingAsset.category}</div>
-          <div><strong>Location:</strong> {existingAsset.location}</div>
-          <div><strong>Status:</strong> {existingAsset.status}</div>
-          {existingAsset.notes && <div><strong>Notes:</strong> {existingAsset.notes}</div>}
-          <button onClick={resetAll} style={{ marginTop: "0.75rem", padding: "0.5rem 1.5rem" }}>
-            Scan Another
-          </button>
-        </div>
+      {confirmed && existingAsset && !saved && (
+        <ScanAssetDetail asset={{ id: result, ...existingAsset }} onDone={resetAll} />
       )}
 
       {confirmed && !existingAsset && !saved && (
