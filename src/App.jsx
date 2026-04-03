@@ -510,8 +510,58 @@ function AssetsTab() {
   );
 }
 
+function LoginScreen({ onLogin }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (username === "traceroute" && password === "TR2026!") {
+      onLogin();
+    } else {
+      setError("Invalid credentials");
+    }
+  };
+
+  return (
+    <div style={{ fontFamily: "sans-serif", maxWidth: "400px", margin: "0 auto", padding: "2rem", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <h1 style={{ fontSize: "1.4rem", marginBottom: "1.5rem", textAlign: "center" }}>Traceroute</h1>
+      <form onSubmit={handleSubmit}>
+        <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Username</label>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "0.75rem" }}
+        />
+        <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "1rem" }}
+        />
+        <button type="submit" style={{ padding: "0.75rem", fontSize: "1rem", width: "100%", background: "#007bff", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+          Log In
+        </button>
+      </form>
+      {error && (
+        <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#f8d7da", borderRadius: "6px", textAlign: "center" }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
+  const [loggedIn, setLoggedIn] = useState(false);
   const [tab, setTab] = useState("scan");
+
+  if (!loggedIn) {
+    return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+  }
 
   const navBtn = (name, label) => ({
     flex: 1,
