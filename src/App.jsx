@@ -553,6 +553,8 @@ function AssetsTab() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [locationFilter, setLocationFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -580,26 +582,52 @@ function AssetsTab() {
     );
   }
 
-  const filtered = filter === "All" ? assets : assets.filter((a) => a.category === filter);
+  const filtered = assets.filter((a) => {
+    if (filter !== "All" && a.category !== filter) return false;
+    if (locationFilter !== "All" && a.location !== locationFilter) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      if (!(
+        (a.vendor || "").toLowerCase().includes(s) ||
+        (a.modelNumber || "").toLowerCase().includes(s) ||
+        (a.serialNumber || "").toLowerCase().includes(s)
+      )) return false;
+    }
+    return true;
+  });
+
+  const pillStyle = (active) => ({
+    padding: "0.35rem 0.6rem",
+    fontSize: "0.8rem",
+    borderRadius: "16px",
+    border: active ? "2px solid #007bff" : "1px solid #ccc",
+    background: active ? "#007bff" : "#fff",
+    color: active ? "#fff" : "#333",
+    cursor: "pointer",
+  });
 
   return (
     <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "1rem" }}>
+      <input
+        type="text"
+        placeholder="Search vendor, model, or serial..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "0.5rem" }}
+      />
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.5rem" }}>
         {["All", ...CATEGORIES].map((c) => (
-          <button
-            key={c}
-            onClick={() => setFilter(c)}
-            style={{
-              padding: "0.35rem 0.6rem",
-              fontSize: "0.8rem",
-              borderRadius: "16px",
-              border: filter === c ? "2px solid #007bff" : "1px solid #ccc",
-              background: filter === c ? "#007bff" : "#fff",
-              color: filter === c ? "#fff" : "#333",
-              cursor: "pointer",
-            }}
-          >
+          <button key={c} onClick={() => setFilter(c)} style={pillStyle(filter === c)}>
             {c}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "1rem" }}>
+        {["All", ...LOCATIONS].map((l) => (
+          <button key={l} onClick={() => setLocationFilter(l)} style={pillStyle(locationFilter === l)}>
+            {l}
           </button>
         ))}
       </div>
