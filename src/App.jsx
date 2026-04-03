@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import Tesseract from "tesseract.js";
 import { db } from "./firebase";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 
@@ -200,7 +201,25 @@ function ScanTab() {
   const [vendors, setVendors] = useState([]);
   const [serialInput, setSerialInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [ocrText, setOcrText] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const fileInputRef = useRef(null);
   const scannerRef = useRef(null);
+
+  const handleOcrCapture = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOcrLoading(true);
+    setOcrText(null);
+    try {
+      const { data: { text } } = await Tesseract.recognize(file, "eng");
+      setOcrText(text.trim());
+    } catch (err) {
+      setError("Failed to read text from image.");
+    }
+    setOcrLoading(false);
+    e.target.value = "";
+  };
 
   useEffect(() => {
     (async () => {
@@ -369,6 +388,41 @@ function ScanTab() {
               </div>
             )}
           </div>
+          <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleOcrCapture} style={{ display: "none" }} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={ocrLoading}
+            style={{ marginTop: "0.5rem", padding: "0.5rem 1rem", fontSize: "1rem", width: "100%" }}
+          >
+            {ocrLoading ? "Reading text..." : "\ud83d\udcf7 Read Text"}
+          </button>
+          {ocrText !== null && (
+            <div style={{ marginTop: "0.5rem", padding: "0.75rem", background: "#e8f4fd", borderRadius: "8px" }}>
+              <div style={{ fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Extracted text:</div>
+              <textarea
+                value={ocrText}
+                onChange={(e) => setOcrText(e.target.value)}
+                style={{ ...inputStyle, minHeight: "60px", marginBottom: "0.5rem" }}
+              />
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  onClick={() => { setSerialInput(ocrText); setOcrText(null); }}
+                  style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}
+                >
+                  Use as Serial
+                </button>
+                <button
+                  onClick={() => { setSuggestions([]); setResult(ocrText); setOcrText(null); }}
+                  style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}
+                >
+                  Confirm
+                </button>
+                <button onClick={() => setOcrText(null)} style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
