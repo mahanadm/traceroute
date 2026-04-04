@@ -778,12 +778,37 @@ function AssetsTab() {
   const [importResult, setImportResult] = useState(null);
   const fileInputRef = useRef(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+  const [sortCol, setSortCol] = useState("vendor");
+  const [sortDir, setSortDir] = useState("asc");
+  const [editingLocation, setEditingLocation] = useState(null);
+  const [locationSaved, setLocationSaved] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth > 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const handleSort = (col) => {
+    if (sortCol === col) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const handleInlineLocationChange = async (assetId, newLocation) => {
+    setEditingLocation(null);
+    try {
+      await updateDoc(doc(db, "assets", assetId), { location: newLocation, updatedAt: serverTimestamp() });
+      setAssets((prev) => prev.map((a) => a.id === assetId ? { ...a, location: newLocation } : a));
+      setLocationSaved(assetId);
+      setTimeout(() => setLocationSaved(null), 1500);
+    } catch (err) {
+      console.error("Failed to update location:", err);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -850,6 +875,8 @@ function AssetsTab() {
     );
   }
 
+  const SORT_KEYS = { "Vendor": "vendor", "Model Number": "modelNumber", "Serial Number": "serialNumber", "Category": "category", "Location": "location", "Status": "status", "Notes": "notes" };
+
   const filtered = assets.filter((a) => {
     if (filter !== "All" && a.category !== filter) return false;
     if (locationFilter !== "All" && a.location !== locationFilter) return false;
@@ -863,6 +890,14 @@ function AssetsTab() {
     }
     return true;
   });
+
+  const sorted = isDesktop ? [...filtered].sort((a, b) => {
+    const aVal = (a[sortCol] || "").toLowerCase();
+    const bVal = (b[sortCol] || "").toLowerCase();
+    if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  }) : filtered;
 
   const pillStyle = (active) => ({
     padding: "0.35rem 0.6rem",
@@ -985,30 +1020,62 @@ function AssetsTab() {
       <div style={{ maxHeight: "calc(100vh - 220px)", overflowY: "auto" }}>
         {!loading && filtered.length === 0 && <div style={{ color: T.muted }}>No assets found.</div>}
 
-        {!loading && filtered.length > 0 && isDesktop ? (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", color: T.text }}>
+        {!loading && sorted.length > 0 && isDesktop ? (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", color: T.text, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "27%" }} />
+            </colgroup>
             <thead>
               <tr style={{ background: T.dark, textAlign: "left" }}>
                 {["Vendor", "Model Number", "Serial Number", "Category", "Location", "Status", "Notes"].map((h) => (
-                  <th key={h} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, fontWeight: "bold", whiteSpace: "nowrap" }}>{h}</th>
+                  <th
+                    key={h}
+                    onClick={() => handleSort(SORT_KEYS[h])}
+                    style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, fontWeight: "bold", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }}
+                  >
+                    {h} {sortCol === SORT_KEYS[h] ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a, i) => (
+              {sorted.map((a, i) => (
                 <tr
                   key={a.id}
-                  onClick={() => setSelected(a)}
                   style={{ background: i % 2 === 0 ? T.card : T.bg, cursor: "pointer" }}
                   onMouseEnter={(e) => e.currentTarget.style.background = T.dark}
                   onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? T.card : T.bg}
                 >
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.vendor}</td>
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.modelNumber}</td>
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, fontFamily: "monospace", fontSize: "0.8rem" }}>{a.serialNumber}</td>
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.category}</td>
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.location}</td>
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>
+                  <td onClick={() => setSelected(a)} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.vendor}</td>
+                  <td onClick={() => setSelected(a)} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.modelNumber}</td>
+                  <td onClick={() => setSelected(a)} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, fontFamily: "monospace", fontSize: "0.8rem" }}>{a.serialNumber}</td>
+                  <td onClick={() => setSelected(a)} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.category}</td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }} onClick={(e) => { e.stopPropagation(); setEditingLocation(a.id); }}>
+                    {locationSaved === a.id ? (
+                      <span style={{ color: T.accent, fontWeight: "bold", fontSize: "0.8rem" }}>Saved!</span>
+                    ) : editingLocation === a.id ? (
+                      <select
+                        autoFocus
+                        value={a.location || ""}
+                        onChange={(e) => handleInlineLocationChange(a.id, e.target.value)}
+                        onBlur={() => setEditingLocation(null)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ padding: "0.2rem", fontSize: "0.8rem", background: T.dark, color: T.text, border: `1px solid ${T.accent}`, borderRadius: "4px", width: "100%" }}
+                      >
+                        <option value="">—</option>
+                        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    ) : (
+                      <span style={{ borderBottom: `1px dashed ${T.muted}`, cursor: "pointer" }}>{a.location || "—"}</span>
+                    )}
+                  </td>
+                  <td onClick={() => setSelected(a)} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>
                     <span style={{
                       padding: "0.15rem 0.5rem",
                       borderRadius: "4px",
@@ -1020,7 +1087,7 @@ function AssetsTab() {
                       {a.status}
                     </span>
                   </td>
-                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</td>
+                  <td onClick={() => setSelected(a)} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</td>
                 </tr>
               ))}
             </tbody>
@@ -1128,7 +1195,7 @@ export default function App() {
   );
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: tab === "assets" ? "1200px" : "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
+    <div style={{ fontFamily: "sans-serif", maxWidth: tab === "assets" ? "none" : "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: tab === "assets" ? "0 1rem" : 0 }}>
       <div style={{ padding: "1rem 1rem 0" }}>
         <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
       </div>
