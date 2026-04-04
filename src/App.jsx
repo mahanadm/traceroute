@@ -692,6 +692,9 @@ function processCSVRows(rows) {
     const vendor = (cols[1] || "").trim();
     const modelNumber = (cols[2] || "").trim();
 
+    // Skip header row
+    if (vendor.toLowerCase() === "vendor" && modelNumber.toLowerCase() === "model number") continue;
+
     // Check if this row is a category header
     const lowerFirst = firstCol.toLowerCase();
     let isCategoryHeader = false;
