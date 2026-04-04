@@ -735,7 +735,7 @@ function LoginScreen({ onLogin }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (username === "traceroute" && password === "TR2026!") {
+    if ((username === "mike@traceroutellc.com" || username === "josh@traceroutellc.com") && password === "fiction-hei-need") {
       onLogin();
     } else {
       setError("Invalid credentials");
