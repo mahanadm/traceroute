@@ -1103,8 +1103,20 @@ function AssetsTab() {
               <div style={{ fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
                 SN: {a.serialNumber}
               </div>
-              <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
-                <span>{a.location}</span>
+              <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.85rem", color: T.muted, marginTop: "0.4rem", alignItems: "center" }}>
+                {locationSaved === a.id ? (
+                  <span style={{ color: T.accent, fontWeight: "bold", fontSize: "0.8rem" }}>Saved!</span>
+                ) : (
+                  <select
+                    value={a.location || ""}
+                    onChange={(e) => { e.stopPropagation(); handleInlineLocationChange(a.id, e.target.value); }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ padding: "0.25rem 0.3rem", fontSize: "0.8rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "4px", flex: 1 }}
+                  >
+                    <option value="">No location</option>
+                    {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                )}
                 <span style={{
                   padding: "0.1rem 0.4rem",
                   borderRadius: "4px",
