@@ -1017,7 +1017,7 @@ function AssetsTab({ onAddAsset }) {
           Import CSV
         </button>
         <button onClick={onAddAsset} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
-          + Add Asset
+          Scan Asset
         </button>
       </div>
 
