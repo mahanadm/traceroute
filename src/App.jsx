@@ -1003,15 +1003,15 @@ function AssetsTab({ onAddAsset }) {
         onChange={(e) => setSearch(e.target.value)}
         style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
       />
+      <select
+        value={locationFilter}
+        onChange={(e) => setLocationFilter(e.target.value)}
+        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
+      >
+        <option value="All">All Locations</option>
+        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+      </select>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <select
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          style={{ padding: "0.5rem", fontSize: "1rem", flex: 1, borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", background: T.card, color: T.text }}
-        >
-          <option value="All">All Locations</option>
-          {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
         <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileSelect} style={{ display: "none" }} />
         <button onClick={() => fileInputRef.current?.click()} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.dark, color: T.accent, border: `1px solid ${T.accent}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
           Import CSV
