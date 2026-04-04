@@ -777,6 +777,13 @@ function AssetsTab() {
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState(null);
   const fileInputRef = useRef(null);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth > 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -977,30 +984,73 @@ function AssetsTab() {
 
       <div style={{ maxHeight: "calc(100vh - 220px)", overflowY: "auto" }}>
         {!loading && filtered.length === 0 && <div style={{ color: T.muted }}>No assets found.</div>}
-        {filtered.map((a) => (
-          <div
-            key={a.id}
-            onClick={() => setSelected(a)}
-            style={{ padding: "0.75rem", marginBottom: "0.5rem", background: T.card, borderRadius: "8px", border: `1px solid ${T.border}`, cursor: "pointer" }}
-          >
-            <div style={{ fontWeight: "bold", fontSize: "0.95rem", color: T.text }}>{a.vendor} {a.modelNumber}</div>
-            <div style={{ fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
-              SN: {a.serialNumber}
+
+        {!loading && filtered.length > 0 && isDesktop ? (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", color: T.text }}>
+            <thead>
+              <tr style={{ background: T.dark, textAlign: "left" }}>
+                {["Vendor", "Model Number", "Serial Number", "Category", "Location", "Status", "Notes"].map((h) => (
+                  <th key={h} style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, fontWeight: "bold", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((a, i) => (
+                <tr
+                  key={a.id}
+                  onClick={() => setSelected(a)}
+                  style={{ background: i % 2 === 0 ? T.card : T.bg, cursor: "pointer" }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = T.dark}
+                  onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? T.card : T.bg}
+                >
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.vendor}</td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.modelNumber}</td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, fontFamily: "monospace", fontSize: "0.8rem" }}>{a.serialNumber}</td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.category}</td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>{a.location}</td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}` }}>
+                    <span style={{
+                      padding: "0.15rem 0.5rem",
+                      borderRadius: "4px",
+                      background: a.status === "TR Owned" ? "#E8722A" : a.status === "Loaned Out" ? "#F5A623" : a.status === "Vendor Loan" ? "#CC3333" : "#555555",
+                      color: a.status === "Loaned Out" ? "#000" : "#fff",
+                      fontSize: "0.8rem",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {a.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: "0.5rem 0.6rem", borderBottom: `1px solid ${T.border}`, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.notes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          filtered.map((a) => (
+            <div
+              key={a.id}
+              onClick={() => setSelected(a)}
+              style={{ padding: "0.75rem", marginBottom: "0.5rem", background: T.card, borderRadius: "8px", border: `1px solid ${T.border}`, cursor: "pointer" }}
+            >
+              <div style={{ fontWeight: "bold", fontSize: "0.95rem", color: T.text }}>{a.vendor} {a.modelNumber}</div>
+              <div style={{ fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
+                SN: {a.serialNumber}
+              </div>
+              <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
+                <span>{a.location}</span>
+                <span style={{
+                  padding: "0.1rem 0.4rem",
+                  borderRadius: "4px",
+                  background: a.status === "TR Owned" ? "#E8722A" : a.status === "Loaned Out" ? "#F5A623" : a.status === "Vendor Loan" ? "#CC3333" : "#555555",
+                  color: a.status === "Loaned Out" ? "#000" : "#fff",
+                  fontSize: "0.8rem",
+                }}>
+                  {a.status}
+                </span>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
-              <span>{a.location}</span>
-              <span style={{
-                padding: "0.1rem 0.4rem",
-                borderRadius: "4px",
-                background: a.status === "TR Owned" ? "#E8722A" : a.status === "Loaned Out" ? "#F5A623" : a.status === "Vendor Loan" ? "#CC3333" : "#555555",
-                color: a.status === "Loaned Out" ? "#000" : "#fff",
-                fontSize: "0.8rem",
-              }}>
-                {a.status}
-              </span>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
@@ -1078,7 +1128,7 @@ export default function App() {
   );
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
+    <div style={{ fontFamily: "sans-serif", maxWidth: tab === "assets" ? "1200px" : "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
       <div style={{ padding: "1rem 1rem 0" }}>
         <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
       </div>
