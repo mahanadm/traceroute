@@ -3,6 +3,17 @@ import { Html5Qrcode } from "html5-qrcode";
 import { db } from "./firebase";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 
+const T = {
+  bg: "#000000",
+  accent: "#E8722A",
+  card: "#1E1E1E",
+  dark: "#2A2A2A",
+  text: "#FFFFFF",
+  muted: "#AAAAAA",
+  border: "#333",
+  darkAccent: "#C4601F",
+};
+
 const scannerStyles = `
   #reader { width: 100% !important; }
   #reader video { width: 100% !important; height: 300px !important; object-fit: cover !important; }
@@ -63,8 +74,8 @@ function ScanAssetDetail({ asset, onDone }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" };
-  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem" };
+  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", background: T.card, color: T.text };
+  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem", color: T.text };
 
   const handleUpdateLocation = async () => {
     setSaving(true);
@@ -93,26 +104,26 @@ function ScanAssetDetail({ asset, onDone }) {
 
   return (
     <div style={{ marginTop: "1rem" }}>
-      <div style={{ padding: "0.75rem", background: "#e8f4fd", borderRadius: "8px", marginBottom: "0.75rem" }}>
-        <div style={{ fontWeight: "bold", marginBottom: "0.5rem" }}>Quick Update Location</div>
+      <div style={{ padding: "0.75rem", background: T.dark, borderRadius: "8px", marginBottom: "0.75rem" }}>
+        <div style={{ fontWeight: "bold", marginBottom: "0.5rem", color: T.text }}>Quick Update Location</div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <select style={{ ...inputStyle, flex: 1 }} value={quickLocation} onChange={(e) => setQuickLocation(e.target.value)}>
             {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
-          <button onClick={handleUpdateLocation} disabled={saving} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: "#28a745", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+          <button onClick={handleUpdateLocation} disabled={saving} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
             {saving ? "..." : "Update Location"}
           </button>
         </div>
       </div>
 
       {message && (
-        <div style={{ marginBottom: "0.5rem", padding: "0.5rem", background: message.includes("saved") || message.includes("updated") ? "#d4edda" : "#f8d7da", borderRadius: "6px", fontSize: "0.9rem" }}>
+        <div style={{ marginBottom: "0.5rem", padding: "0.5rem", background: message.includes("saved") || message.includes("updated") ? T.dark : "#5a1a1a", borderRadius: "6px", fontSize: "0.9rem", color: message.includes("saved") || message.includes("updated") ? T.accent : "#ff6b6b" }}>
           {message}
         </div>
       )}
 
       <label style={labelStyle}>Serial Number</label>
-      <input style={{ ...inputStyle, background: "#000", color: "#fff" }} value={form.serialNumber} readOnly />
+      <input style={{ ...inputStyle, background: "#000", color: "#fff", border: `1px solid ${T.accent}` }} value={form.serialNumber} readOnly />
 
       <label style={labelStyle}>Vendor</label>
       <input style={inputStyle} value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
@@ -141,19 +152,19 @@ function ScanAssetDetail({ asset, onDone }) {
       <label style={labelStyle}>Loan Date</label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.loanDate} onChange={(e) => setForm({ ...form, loanDate: e.target.value })} />
-        <button onClick={() => setForm({ ...form, loanDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+        <button onClick={() => setForm({ ...form, loanDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Clear</button>
       </div>
 
       <label style={labelStyle}>Due Back</label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.dueBack} onChange={(e) => setForm({ ...form, dueBack: e.target.value })} />
-        <button onClick={() => setForm({ ...form, dueBack: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+        <button onClick={() => setForm({ ...form, dueBack: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Clear</button>
       </div>
 
       <label style={labelStyle}>Returned Date</label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.returnedDate} onChange={(e) => setForm({ ...form, returnedDate: e.target.value })} />
-        <button onClick={() => setForm({ ...form, returnedDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+        <button onClick={() => setForm({ ...form, returnedDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Clear</button>
       </div>
 
       <label style={labelStyle}>Loan Contact</label>
@@ -169,10 +180,10 @@ function ScanAssetDetail({ asset, onDone }) {
       <input style={inputStyle} value={form.trackingNumber} onChange={(e) => setForm({ ...form, trackingNumber: e.target.value })} />
 
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", marginBottom: "1rem" }}>
-        <button onClick={handleSaveAll} disabled={saving} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: "#007bff", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+        <button onClick={handleSaveAll} disabled={saving} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
           {saving ? "Saving..." : "Save All Changes"}
         </button>
-        <button onClick={onDone} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>
+        <button onClick={onDone} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>
           Scan Another
         </button>
       </div>
@@ -312,15 +323,15 @@ function ScanTab() {
     setSuggestions([]);
   };
 
-  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" };
-  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem" };
+  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", background: T.card, color: T.text };
+  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem", color: T.text };
 
   return (
     <div>
       <style>{scannerStyles}</style>
       {!scanning && !result && (
         <>
-          <button onClick={startScan} style={{ padding: "1rem 2rem", fontSize: "1rem", display: "block", marginBottom: "1rem", width: "100%" }}>
+          <button onClick={startScan} style={{ padding: "1rem 2rem", fontSize: "1rem", display: "block", marginBottom: "1rem", width: "100%", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
             Start Scan
           </button>
           <div style={{ position: "relative" }}>
@@ -344,12 +355,12 @@ function ScanTab() {
               />
               <button
                 onClick={() => { if (serialInput) { setSuggestions([]); setResult(serialInput); } }}
-                style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}>
+                style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
                 Go
               </button>
             </div>
             {suggestions.length > 0 && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #ccc", borderRadius: "6px", zIndex: 10, maxHeight: "200px", overflowY: "auto", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: T.card, border: `1px solid ${T.border}`, borderRadius: "6px", zIndex: 10, maxHeight: "200px", overflowY: "auto", boxShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
                 {suggestions.map((a) => (
                   <div
                     key={a.id}
@@ -360,10 +371,10 @@ function ScanTab() {
                       setExistingAsset(a);
                       setConfirmed(true);
                     }}
-                    style={{ padding: "0.5rem 0.75rem", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "0.9rem" }}
+                    style={{ padding: "0.5rem 0.75rem", cursor: "pointer", borderBottom: `1px solid ${T.border}`, fontSize: "0.9rem", color: T.text }}
                   >
                     <div style={{ fontWeight: "bold" }}>{a.serialNumber}</div>
-                    <div style={{ fontSize: "0.8rem", color: "#666" }}>{a.vendor} {a.modelNumber}</div>
+                    <div style={{ fontSize: "0.8rem", color: T.muted }}>{a.vendor} {a.modelNumber}</div>
                   </div>
                 ))}
               </div>
@@ -399,19 +410,19 @@ function ScanTab() {
       </div>
 
       {scanning && (
-        <button onClick={stopScan} style={{ marginTop: "1rem", padding: "0.5rem 1rem", width: "100%" }}>
+        <button onClick={stopScan} style={{ marginTop: "1rem", padding: "0.5rem 1rem", width: "100%", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>
           Cancel
         </button>
       )}
 
       {result && !confirmed && (
-        <div style={{ marginTop: "1rem", padding: "1rem", background: "#e8f4fd", borderRadius: "8px" }}>
+        <div style={{ marginTop: "1rem", padding: "1rem", background: T.dark, borderRadius: "8px", color: T.text }}>
           <strong>Serial:</strong> {result}
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
-            <button onClick={handleConfirm} disabled={loading} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>
+            <button onClick={handleConfirm} disabled={loading} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
               {loading ? "Looking up..." : "Confirm"}
             </button>
-            <button onClick={() => { resetAll(); startScan(); }} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>
+            <button onClick={() => { resetAll(); startScan(); }} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.card, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>
               Rescan
             </button>
           </div>
@@ -423,8 +434,8 @@ function ScanTab() {
       )}
 
       {confirmed && !existingAsset && !saved && (
-        <div style={{ marginTop: "1rem", padding: "1rem", background: "#fff3cd", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 0.5rem 0" }}>New Asset: {result}</h3>
+        <div style={{ marginTop: "1rem", padding: "1rem", background: T.dark, borderRadius: "8px" }}>
+          <h3 style={{ margin: "0 0 0.5rem 0", color: T.accent }}>New Asset: {result}</h3>
 
           <label style={labelStyle}>Vendor</label>
           <input style={inputStyle} list="vendor-suggestions" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
@@ -457,10 +468,10 @@ function ScanTab() {
           <textarea style={{ ...inputStyle, minHeight: "60px" }} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
 
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-            <button onClick={handleSave} disabled={loading} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>
+            <button onClick={handleSave} disabled={loading} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
               {loading ? "Saving..." : "Save Asset"}
             </button>
-            <button onClick={resetAll} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>
+            <button onClick={resetAll} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.card, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>
               Cancel
             </button>
           </div>
@@ -468,16 +479,16 @@ function ScanTab() {
       )}
 
       {saved && (
-        <div style={{ marginTop: "1rem", padding: "1rem", background: "#d4edda", borderRadius: "8px" }}>
-          <div style={{ color: "green", fontWeight: "bold" }}>Asset saved!</div>
-          <button onClick={resetAll} style={{ marginTop: "0.5rem", padding: "0.5rem 1.5rem" }}>
+        <div style={{ marginTop: "1rem", padding: "1rem", background: T.dark, borderRadius: "8px" }}>
+          <div style={{ color: T.accent, fontWeight: "bold" }}>Asset saved!</div>
+          <button onClick={resetAll} style={{ marginTop: "0.5rem", padding: "0.5rem 1.5rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
             Scan Another
           </button>
         </div>
       )}
 
       {error && (
-        <div style={{ marginTop: "1rem", padding: "1rem", background: "#f8d7da", borderRadius: "8px" }}>
+        <div style={{ marginTop: "1rem", padding: "1rem", background: "#5a1a1a", borderRadius: "8px", color: "#ff6b6b" }}>
           {error}
         </div>
       )}
@@ -506,8 +517,8 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" };
-  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem" };
+  const inputStyle = { padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", background: T.card, color: T.text };
+  const labelStyle = { display: "block", marginTop: "0.75rem", fontWeight: "bold", fontSize: "0.9rem", color: T.text };
 
   const handleSave = async () => {
     setSaving(true);
@@ -536,10 +547,10 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
 
   return (
     <div>
-      <button onClick={onBack} style={{ padding: "0.5rem 1rem", fontSize: "1rem", marginBottom: "0.5rem" }}>Back</button>
+      <button onClick={onBack} style={{ padding: "0.5rem 1rem", fontSize: "1rem", marginBottom: "0.5rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>Back</button>
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
-        <button onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: "#007bff", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+        <button onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
           {saving ? "Saving..." : "Save Changes"}
         </button>
         <button onClick={handleDelete} disabled={deleting} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: "#dc3545", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
@@ -548,13 +559,13 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
       </div>
 
       {message && (
-        <div style={{ marginBottom: "0.5rem", padding: "0.5rem", background: message.includes("saved") ? "#d4edda" : "#f8d7da", borderRadius: "6px", fontSize: "0.9rem" }}>
+        <div style={{ marginBottom: "0.5rem", padding: "0.5rem", background: message.includes("saved") ? T.dark : "#5a1a1a", borderRadius: "6px", fontSize: "0.9rem", color: message.includes("saved") ? T.accent : "#ff6b6b" }}>
           {message}
         </div>
       )}
 
       <label style={labelStyle}>Serial Number</label>
-      <input style={{ ...inputStyle, background: "#000", color: "#fff" }} value={form.serialNumber} readOnly />
+      <input style={{ ...inputStyle, background: "#000", color: "#fff", border: `1px solid ${T.accent}` }} value={form.serialNumber} readOnly />
 
       <label style={labelStyle}>Vendor</label>
       <input style={inputStyle} value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
@@ -583,19 +594,19 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
       <label style={labelStyle}>Loan Date</label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.loanDate} onChange={(e) => setForm({ ...form, loanDate: e.target.value })} />
-        <button onClick={() => setForm({ ...form, loanDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+        <button onClick={() => setForm({ ...form, loanDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Clear</button>
       </div>
 
       <label style={labelStyle}>Due Back</label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.dueBack} onChange={(e) => setForm({ ...form, dueBack: e.target.value })} />
-        <button onClick={() => setForm({ ...form, dueBack: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+        <button onClick={() => setForm({ ...form, dueBack: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Clear</button>
       </div>
 
       <label style={labelStyle}>Returned Date</label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input type="date" style={{ ...inputStyle, flex: 1 }} value={form.returnedDate} onChange={(e) => setForm({ ...form, returnedDate: e.target.value })} />
-        <button onClick={() => setForm({ ...form, returnedDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem" }}>Clear</button>
+        <button onClick={() => setForm({ ...form, returnedDate: "" })} style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Clear</button>
       </div>
 
       <label style={labelStyle}>Loan Contact</label>
@@ -664,9 +675,9 @@ function AssetsTab() {
     padding: "0.35rem 0.6rem",
     fontSize: "0.8rem",
     borderRadius: "16px",
-    border: active ? "2px solid #007bff" : "1px solid #ccc",
-    background: active ? "#007bff" : "#fff",
-    color: active ? "#fff" : "#333",
+    border: active ? `2px solid ${T.accent}` : `1px solid ${T.border}`,
+    background: active ? T.accent : T.card,
+    color: active ? "#fff" : T.muted,
     cursor: "pointer",
   });
 
@@ -677,12 +688,12 @@ function AssetsTab() {
         placeholder="Search vendor, model, or serial..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "0.5rem" }}
+        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
       />
       <select
         value={locationFilter}
         onChange={(e) => setLocationFilter(e.target.value)}
-        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "0.5rem" }}
+        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
       >
         <option value="All">All Locations</option>
         {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -696,26 +707,27 @@ function AssetsTab() {
         ))}
       </div>
 
-      {loading && <div>Loading assets...</div>}
+      {loading && <div style={{ color: T.muted }}>Loading assets...</div>}
 
       <div style={{ maxHeight: "calc(100vh - 220px)", overflowY: "auto" }}>
-        {!loading && filtered.length === 0 && <div style={{ color: "#888" }}>No assets found.</div>}
+        {!loading && filtered.length === 0 && <div style={{ color: T.muted }}>No assets found.</div>}
         {filtered.map((a) => (
           <div
             key={a.id}
             onClick={() => setSelected(a)}
-            style={{ padding: "0.75rem", marginBottom: "0.5rem", background: "#f8f9fa", borderRadius: "8px", border: "1px solid #e9ecef", cursor: "pointer" }}
+            style={{ padding: "0.75rem", marginBottom: "0.5rem", background: T.card, borderRadius: "8px", border: `1px solid ${T.border}`, cursor: "pointer" }}
           >
-            <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>{a.vendor} {a.modelNumber}</div>
-            <div style={{ fontSize: "0.85rem", color: "#555", marginTop: "0.25rem" }}>
+            <div style={{ fontWeight: "bold", fontSize: "0.95rem", color: T.text }}>{a.vendor} {a.modelNumber}</div>
+            <div style={{ fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
               SN: {a.serialNumber}
             </div>
-            <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: "#555", marginTop: "0.25rem" }}>
+            <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: T.muted, marginTop: "0.25rem" }}>
               <span>{a.location}</span>
               <span style={{
                 padding: "0.1rem 0.4rem",
                 borderRadius: "4px",
-                background: a.status === "TR Owned" ? "#d4edda" : a.status === "Loaned Out" ? "#fff3cd" : "#e8f4fd",
+                background: a.status === "TR Owned" ? T.accent : a.status === "Loaned Out" ? T.dark : T.darkAccent,
+                color: "#fff",
                 fontSize: "0.8rem",
               }}>
                 {a.status}
@@ -743,29 +755,29 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "400px", margin: "0 auto", padding: "2rem", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-      <h1 style={{ fontSize: "1.4rem", marginBottom: "1.5rem", textAlign: "center" }}>Traceroute</h1>
+    <div style={{ fontFamily: "sans-serif", maxWidth: "400px", margin: "0 auto", padding: "2rem", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", background: T.bg, color: T.text }}>
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "1.5rem", textAlign: "center" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
       <form onSubmit={handleSubmit}>
-        <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Username</label>
+        <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem", color: T.text }}>Username</label>
         <input
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "0.75rem" }}
+          style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.75rem", background: T.card, color: T.text }}
         />
-        <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Password</label>
+        <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem", color: T.text }}>Password</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", marginBottom: "1rem" }}
+          style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "1rem", background: T.card, color: T.text }}
         />
-        <button type="submit" style={{ padding: "0.75rem", fontSize: "1rem", width: "100%", background: "#007bff", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+        <button type="submit" style={{ padding: "0.75rem", fontSize: "1rem", width: "100%", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
           Log In
         </button>
       </form>
       {error && (
-        <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#f8d7da", borderRadius: "6px", textAlign: "center" }}>
+        <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#5a1a1a", borderRadius: "6px", textAlign: "center", color: "#ff6b6b" }}>
           {error}
         </div>
       )}
@@ -781,28 +793,28 @@ export default function App() {
     return <LoginScreen onLogin={() => setLoggedIn(true)} />;
   }
 
-  const navBtn = (name, label) => ({
+  const navBtn = (name) => ({
     flex: 1,
     padding: "0.75rem",
     fontSize: "1rem",
     fontWeight: tab === name ? "bold" : "normal",
-    background: tab === name ? "#007bff" : "#f8f9fa",
-    color: tab === name ? "#fff" : "#333",
+    background: tab === name ? T.accent : T.card,
+    color: tab === name ? "#fff" : T.muted,
     border: "none",
     cursor: "pointer",
   });
 
   const navButtons = (
-    <div style={{ display: "flex", borderBottom: "1px solid #ddd" }}>
-      <button style={navBtn("scan", "Scan")} onClick={() => setTab("scan")}>Scan</button>
-      <button style={navBtn("assets", "Assets")} onClick={() => setTab("assets")}>Assets</button>
+    <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
+      <button style={navBtn("scan")} onClick={() => setTab("scan")}>Scan</button>
+      <button style={navBtn("assets")} onClick={() => setTab("assets")}>Assets</button>
     </div>
   );
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
       <div style={{ padding: "1rem 1rem 0" }}>
-        <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>Traceroute</h1>
+        <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
       </div>
 
       {navButtons}
