@@ -624,6 +624,123 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
   );
 }
 
+const CATEGORY_HEADERS = {
+  "loans": "Loans",
+  "switches": "Switches",
+  "wifi": "WiFi",
+  "computers": "Computers",
+  "cellular": "Cellular",
+  "routers": "Routers/Firewall/Sec/Remote Access",
+  "device servers": "Device Servers/IO",
+  "misc": "Misc.",
+};
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const rows = [];
+  let currentField = "";
+  let currentRow = [];
+  let inQuotes = false;
+
+  for (const line of lines) {
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') {
+          currentField += '"';
+          i++;
+        } else if (ch === '"') {
+          inQuotes = false;
+        } else {
+          currentField += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ',') {
+          currentRow.push(currentField.trim());
+          currentField = "";
+        } else {
+          currentField += ch;
+        }
+      }
+    }
+    if (inQuotes) {
+      currentField += "\n";
+    } else {
+      currentRow.push(currentField.trim());
+      currentField = "";
+      rows.push(currentRow);
+      currentRow = [];
+    }
+  }
+  if (currentRow.length > 0 || currentField) {
+    currentRow.push(currentField.trim());
+    rows.push(currentRow);
+  }
+  return rows;
+}
+
+function processCSVRows(rows) {
+  const results = [];
+  let currentCategory = "";
+  let importCounter = 0;
+
+  for (const cols of rows) {
+    const firstCol = (cols[0] || "").trim();
+    const vendor = (cols[1] || "").trim();
+    const modelNumber = (cols[2] || "").trim();
+
+    // Check if this row is a category header
+    const lowerFirst = firstCol.toLowerCase();
+    let isCategoryHeader = false;
+    for (const [key, cat] of Object.entries(CATEGORY_HEADERS)) {
+      if (lowerFirst.startsWith(key)) {
+        currentCategory = cat;
+        isCategoryHeader = true;
+        break;
+      }
+    }
+    if (isCategoryHeader) continue;
+
+    // Skip rows where both vendor and model number are empty
+    if (!vendor && !modelNumber) continue;
+
+    const notes = (cols[3] || "").trim();
+    const location = (cols[4] || "").trim();
+    const rawStatus = (cols[5] || "").trim();
+    const status = ["TR Owned", "Vendor Loan", "Loaned Out"].includes(rawStatus) ? rawStatus : "TR Owned";
+
+    // Extract serial number from notes if "SN:" is present
+    let serialNumber = "";
+    const snMatch = notes.match(/SN:\s*(\S+)/i);
+    if (snMatch) {
+      serialNumber = snMatch[1];
+    } else {
+      importCounter++;
+      serialNumber = `IMPORT-${String(importCounter).padStart(3, "0")}`;
+    }
+
+    results.push({
+      serialNumber,
+      vendor,
+      modelNumber,
+      notes,
+      location,
+      status,
+      category: currentCategory || "Misc.",
+      loanDate: (cols[6] || "").trim(),
+      dueBack: (cols[7] || "").trim(),
+      returnedDate: (cols[8] || "").trim(),
+      loanContact: (cols[9] || "").trim(),
+      customer: (cols[10] || "").trim(),
+      shipped: (cols[11] || "").trim(),
+      trackingNumber: (cols[12] || "").trim(),
+    });
+  }
+  return results;
+}
+
 function AssetsTab() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -631,6 +748,11 @@ function AssetsTab() {
   const [locationFilter, setLocationFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
+  const [csvPreview, setCsvPreview] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const [importResult, setImportResult] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -645,6 +767,44 @@ function AssetsTab() {
       setLoading(false);
     })();
   }, []);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const rows = parseCSV(ev.target.result);
+      const parsed = processCSVRows(rows);
+      setCsvPreview(parsed);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleConfirmImport = async () => {
+    if (!csvPreview || csvPreview.length === 0) return;
+    setImporting(true);
+    setImportProgress({ current: 0, total: csvPreview.length });
+    let imported = 0;
+    const newAssets = [];
+    for (const row of csvPreview) {
+      try {
+        await setDoc(doc(db, "assets", row.serialNumber), {
+          ...row,
+          createdAt: serverTimestamp(),
+        });
+        newAssets.push({ id: row.serialNumber, ...row });
+        imported++;
+        setImportProgress({ current: imported, total: csvPreview.length });
+      } catch (err) {
+        console.error("Failed to import row:", row.serialNumber, err);
+      }
+    }
+    setAssets((prev) => [...prev, ...newAssets]);
+    setImporting(false);
+    setCsvPreview(null);
+    setImportResult(`Successfully imported ${imported} of ${csvPreview.length} assets.`);
+  };
 
   if (selected) {
     return (
@@ -681,6 +841,38 @@ function AssetsTab() {
     cursor: "pointer",
   });
 
+  if (csvPreview) {
+    return (
+      <div>
+        <h3 style={{ color: T.accent, margin: "0.5rem 0" }}>CSV Import Preview</h3>
+        <div style={{ padding: "0.75rem", background: T.dark, borderRadius: "8px", marginBottom: "0.75rem", color: T.text }}>
+          <strong>{csvPreview.length}</strong> rows will be imported
+        </div>
+        <div style={{ maxHeight: "300px", overflowY: "auto", marginBottom: "0.75rem" }}>
+          {csvPreview.slice(0, 5).map((row, i) => (
+            <div key={i} style={{ padding: "0.5rem 0.75rem", marginBottom: "0.25rem", background: T.card, borderRadius: "6px", border: `1px solid ${T.border}`, fontSize: "0.85rem", color: T.text }}>
+              <div style={{ fontWeight: "bold" }}>{row.vendor} {row.modelNumber}</div>
+              <div style={{ color: T.muted, fontSize: "0.8rem" }}>SN: {row.serialNumber} · {row.category} · {row.location || "No location"} · {row.status}</div>
+            </div>
+          ))}
+          {csvPreview.length > 5 && (
+            <div style={{ padding: "0.5rem", color: T.muted, fontSize: "0.85rem", textAlign: "center" }}>
+              ...and {csvPreview.length - 5} more rows
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button onClick={handleConfirmImport} disabled={importing} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+            {importing ? `Importing ${importProgress.current}/${importProgress.total}...` : "Confirm Import"}
+          </button>
+          <button onClick={() => setCsvPreview(null)} disabled={importing} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <input
@@ -690,14 +882,27 @@ function AssetsTab() {
         onChange={(e) => setSearch(e.target.value)}
         style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
       />
-      <select
-        value={locationFilter}
-        onChange={(e) => setLocationFilter(e.target.value)}
-        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
-      >
-        <option value="All">All Locations</option>
-        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-      </select>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          style={{ padding: "0.5rem", fontSize: "1rem", flex: 1, borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", background: T.card, color: T.text }}
+        >
+          <option value="All">All Locations</option>
+          {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+        </select>
+        <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileSelect} style={{ display: "none" }} />
+        <button onClick={() => fileInputRef.current?.click()} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.dark, color: T.accent, border: `1px solid ${T.accent}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+          Import CSV
+        </button>
+      </div>
+
+      {importResult && (
+        <div style={{ padding: "0.5rem 0.75rem", marginBottom: "0.5rem", background: T.dark, borderRadius: "6px", color: T.accent, fontSize: "0.9rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{importResult}</span>
+          <button onClick={() => setImportResult(null)} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: "1rem" }}>×</button>
+        </div>
+      )}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "1rem" }}>
         {["All", ...CATEGORIES].map((c) => (
