@@ -765,7 +765,7 @@ function processCSVRows(rows) {
   return results;
 }
 
-function AssetsTab() {
+function AssetsTab({ onAddAsset }) {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
@@ -998,6 +998,9 @@ function AssetsTab() {
         <button onClick={() => fileInputRef.current?.click()} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.dark, color: T.accent, border: `1px solid ${T.accent}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
           Import CSV
         </button>
+        <button onClick={onAddAsset} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+          + Add Asset
+        </button>
       </div>
 
       {importResult && (
@@ -1182,41 +1185,35 @@ function LoginScreen({ onLogin }) {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [tab, setTab] = useState("scan");
+  const [view, setView] = useState("assets");
 
   if (!loggedIn) {
     return <LoginScreen onLogin={() => setLoggedIn(true)} />;
   }
 
-  const navBtn = (name) => ({
-    flex: 1,
-    padding: "0.75rem",
-    fontSize: "1rem",
-    fontWeight: tab === name ? "bold" : "normal",
-    background: tab === name ? T.accent : T.card,
-    color: tab === name ? "#fff" : T.muted,
-    border: "none",
-    cursor: "pointer",
-  });
-
-  const navButtons = (
-    <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
-      <button style={navBtn("scan")} onClick={() => setTab("scan")}>Scan</button>
-      <button style={navBtn("assets")} onClick={() => setTab("assets")}>Assets</button>
-    </div>
-  );
+  if (view === "addAsset") {
+    return (
+      <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
+        <div style={{ padding: "1rem 1rem 0" }}>
+          <button onClick={() => setView("assets")} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", marginBottom: "0.75rem" }}>
+            ← Back
+          </button>
+          <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span> <span style={{ fontSize: "1rem", color: T.muted }}>/ Add Asset</span></h1>
+        </div>
+        <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
+          <ScanTab />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: tab === "assets" ? "none" : "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: tab === "assets" ? "0 1rem" : 0 }}>
-      <div style={{ padding: "1rem 1rem 0" }}>
+    <div style={{ fontFamily: "sans-serif", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: "0 1rem" }}>
+      <div style={{ padding: "1rem 0 0" }}>
         <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
       </div>
-
-      {navButtons}
-
-      <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
-        {tab === "scan" && <ScanTab />}
-        {tab === "assets" && <AssetsTab />}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <AssetsTab onAddAsset={() => setView("addAsset")} />
       </div>
     </div>
   );
