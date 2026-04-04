@@ -992,8 +992,8 @@ function AssetsTab() {
               <span style={{
                 padding: "0.1rem 0.4rem",
                 borderRadius: "4px",
-                background: a.status === "TR Owned" ? T.accent : a.status === "Loaned Out" ? T.dark : T.darkAccent,
-                color: "#fff",
+                background: a.status === "TR Owned" ? "#E8722A" : a.status === "Loaned Out" ? "#F5A623" : a.status === "Vendor Loan" ? "#CC3333" : "#555555",
+                color: a.status === "Loaned Out" ? "#000" : "#fff",
                 fontSize: "0.8rem",
               }}>
                 {a.status}
