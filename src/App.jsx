@@ -1,18 +1,36 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { db } from "./firebase";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 
-const T = {
-  bg: "#000000",
-  accent: "#E8722A",
-  card: "#1E1E1E",
-  dark: "#2A2A2A",
-  text: "#FFFFFF",
-  muted: "#AAAAAA",
-  border: "#333",
-  darkAccent: "#C4601F",
+const THEMES = {
+  dark: {
+    bg: "#000000",
+    accent: "#E8722A",
+    card: "#1E1E1E",
+    dark: "#2A2A2A",
+    text: "#FFFFFF",
+    muted: "#AAAAAA",
+    border: "#333",
+    darkAccent: "#C4601F",
+  },
+  light: {
+    bg: "#F5F5F5",
+    accent: "#E8722A",
+    card: "#FFFFFF",
+    dark: "#F5F5F5",
+    text: "#1A1A1A",
+    muted: "#555555",
+    border: "#DDDDDD",
+    darkAccent: "#C4601F",
+  },
 };
+
+const ThemeContext = createContext(THEMES.dark);
+const useTheme = () => useContext(ThemeContext);
+
+// Keep T as a backward-compatible reference that gets updated
+let T = THEMES.dark;
 
 const scannerStyles = `
   #reader { width: 100% !important; }
@@ -1138,7 +1156,7 @@ function AssetsTab({ onAddAsset }) {
   );
 }
 
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, header }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -1154,7 +1172,7 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div style={{ fontFamily: "sans-serif", maxWidth: "400px", margin: "0 auto", padding: "2rem", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", background: T.bg, color: T.text }}>
-      <h1 style={{ fontSize: "1.6rem", marginBottom: "1.5rem", textAlign: "center" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
+      <div style={{ marginBottom: "1.5rem", textAlign: "center" }}>{header}</div>
       <form onSubmit={handleSubmit}>
         <label style={{ display: "block", fontWeight: "bold", fontSize: "0.9rem", marginBottom: "0.25rem", color: T.text }}>Username</label>
         <input
@@ -1183,38 +1201,82 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+function ThemeToggle() {
+  const { mode, toggle } = useContext(ThemeToggleContext);
+  return (
+    <button
+      onClick={toggle}
+      style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", padding: "0.25rem 0.5rem" }}
+      title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {mode === "dark" ? "☀️" : "🌙"}
+    </button>
+  );
+}
+
+const ThemeToggleContext = createContext({ mode: "dark", toggle: () => {} });
+
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [view, setView] = useState("assets");
+  const [themeMode, setThemeMode] = useState(() => {
+    try { return localStorage.getItem("traceroute-theme") || "dark"; } catch { return "dark"; }
+  });
+
+  // Update the global T reference on every render so all components read current theme
+  T = THEMES[themeMode];
+
+  const toggleTheme = () => {
+    const next = themeMode === "dark" ? "light" : "dark";
+    setThemeMode(next);
+    try { localStorage.setItem("traceroute-theme", next); } catch {}
+  };
+
+  const themeToggleValue = { mode: themeMode, toggle: toggleTheme };
+
+  const header = (extra) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <h1 style={{ margin: "0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span>{extra || ""}</h1>
+      <ThemeToggle />
+    </div>
+  );
 
   if (!loggedIn) {
-    return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+    return (
+      <ThemeToggleContext.Provider value={themeToggleValue}>
+        <LoginScreen onLogin={() => setLoggedIn(true)} header={header()} />
+      </ThemeToggleContext.Provider>
+    );
   }
 
   if (view === "addAsset") {
     return (
-      <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
-        <div style={{ padding: "1rem 1rem 0" }}>
-          <button onClick={() => setView("assets")} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", marginBottom: "0.75rem" }}>
-            ← Back
-          </button>
-          <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span> <span style={{ fontSize: "1rem", color: T.muted }}>/ Add Asset</span></h1>
+      <ThemeToggleContext.Provider value={themeToggleValue}>
+        <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
+          <div style={{ padding: "1rem 1rem 0" }}>
+            <button onClick={() => setView("assets")} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", marginBottom: "0.75rem" }}>
+              ← Back
+            </button>
+            {header(<span style={{ fontSize: "1rem", color: T.muted }}> / Add Asset</span>)}
+          </div>
+          <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
+            <ScanTab />
+          </div>
         </div>
-        <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
-          <ScanTab />
-        </div>
-      </div>
+      </ThemeToggleContext.Provider>
     );
   }
 
   return (
-    <div style={{ fontFamily: "sans-serif", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: "0 1rem" }}>
-      <div style={{ padding: "1rem 0 0" }}>
-        <h1 style={{ margin: "0 0 1rem 0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span></h1>
+    <ThemeToggleContext.Provider value={themeToggleValue}>
+      <div style={{ fontFamily: "sans-serif", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: "0 1rem" }}>
+        <div style={{ padding: "1rem 0 0", marginBottom: "1rem" }}>
+          {header()}
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <AssetsTab onAddAsset={() => setView("addAsset")} />
+        </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
-        <AssetsTab onAddAsset={() => setView("addAsset")} />
-      </div>
-    </div>
+    </ThemeToggleContext.Provider>
   );
 }
