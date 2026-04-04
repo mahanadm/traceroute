@@ -685,6 +685,7 @@ function processCSVRows(rows) {
   const results = [];
   let currentCategory = "";
   let importCounter = 0;
+  const snCounts = {};
 
   for (const cols of rows) {
     const firstCol = (cols[0] || "").trim();
@@ -706,16 +707,17 @@ function processCSVRows(rows) {
     // Skip rows where both vendor and model number are empty
     if (!vendor && !modelNumber) continue;
 
-    const notes = (cols[3] || "").trim();
+    let notes = (cols[3] || "").trim();
     const location = (cols[4] || "").trim();
     const rawStatus = (cols[5] || "").trim();
     const status = ["TR Owned", "Vendor Loan", "Loaned Out"].includes(rawStatus) ? rawStatus : "TR Owned";
 
-    // Extract serial number from notes if "SN:" is present
+    // Extract serial number from notes — match SN:, S/N:, SN : patterns
     let serialNumber = "";
-    const snMatch = notes.match(/SN:\s*(\S+)/i);
+    const snMatch = notes.match(/S\/?N\s*:\s*(\S+)/i);
     if (snMatch) {
       serialNumber = snMatch[1];
+      notes = notes.replace(snMatch[0], "").replace(/\s{2,}/g, " ").trim();
     } else {
       importCounter++;
       serialNumber = `IMPORT-${String(importCounter).padStart(3, "0")}`;
@@ -738,6 +740,25 @@ function processCSVRows(rows) {
       trackingNumber: (cols[12] || "").trim(),
     });
   }
+
+  // Deduplicate serial numbers — append -A, -B, -C suffixes for collisions
+  const snSeen = {};
+  for (const row of results) {
+    const base = row.serialNumber;
+    if (!snSeen[base]) {
+      snSeen[base] = [row];
+    } else {
+      snSeen[base].push(row);
+    }
+  }
+  for (const [base, group] of Object.entries(snSeen)) {
+    if (group.length > 1) {
+      group.forEach((row, i) => {
+        row.serialNumber = `${base}-${String.fromCharCode(65 + i)}`;
+      });
+    }
+  }
+
   return results;
 }
 
@@ -857,28 +878,63 @@ function AssetsTab() {
   });
 
   if (csvPreview) {
+    const pct = importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0;
     return (
       <div>
         <h3 style={{ color: T.accent, margin: "0.5rem 0" }}>CSV Import Preview</h3>
         <div style={{ padding: "0.75rem", background: T.dark, borderRadius: "8px", marginBottom: "0.75rem", color: T.text }}>
           <strong>{csvPreview.length}</strong> rows will be imported
         </div>
-        <div style={{ maxHeight: "300px", overflowY: "auto", marginBottom: "0.75rem" }}>
-          {csvPreview.slice(0, 5).map((row, i) => (
-            <div key={i} style={{ padding: "0.5rem 0.75rem", marginBottom: "0.25rem", background: T.card, borderRadius: "6px", border: `1px solid ${T.border}`, fontSize: "0.85rem", color: T.text }}>
-              <div style={{ fontWeight: "bold" }}>{row.vendor} {row.modelNumber}</div>
-              <div style={{ color: T.muted, fontSize: "0.8rem" }}>SN: {row.serialNumber} · {row.category} · {row.location || "No location"} · {row.status}</div>
-            </div>
-          ))}
+
+        <div style={{ overflowX: "auto", marginBottom: "0.75rem" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", color: T.text }}>
+            <thead>
+              <tr style={{ background: T.dark, textAlign: "left" }}>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>#</th>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>Serial</th>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>Vendor</th>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>Model</th>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>Category</th>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>Location</th>
+                <th style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {csvPreview.slice(0, 5).map((row, i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? T.card : T.bg }}>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}`, color: T.muted }}>{i + 1}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}`, fontFamily: "monospace", fontSize: "0.75rem" }}>{row.serialNumber}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>{row.vendor}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>{row.modelNumber}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>{row.category}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>{row.location || "—"}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", borderBottom: `1px solid ${T.border}` }}>{row.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           {csvPreview.length > 5 && (
             <div style={{ padding: "0.5rem", color: T.muted, fontSize: "0.85rem", textAlign: "center" }}>
               ...and {csvPreview.length - 5} more rows
             </div>
           )}
         </div>
+
+        {importing && (
+          <div style={{ marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: T.muted, marginBottom: "0.25rem" }}>
+              <span>Importing...</span>
+              <span>{importProgress.current} / {importProgress.total} ({pct}%)</span>
+            </div>
+            <div style={{ width: "100%", height: "8px", background: T.dark, borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: T.accent, borderRadius: "4px", transition: "width 0.2s" }} />
+            </div>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button onClick={handleConfirmImport} disabled={importing} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}>
-            {importing ? `Importing ${importProgress.current}/${importProgress.total}...` : "Confirm Import"}
+            {importing ? "Importing..." : "Confirm Import"}
           </button>
           <button onClick={() => setCsvPreview(null)} disabled={importing} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>
             Cancel
