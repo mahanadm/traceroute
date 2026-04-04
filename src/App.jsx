@@ -806,6 +806,21 @@ function AssetsTab() {
     setImportResult(`Successfully imported ${imported} of ${csvPreview.length} assets.`);
   };
 
+  const handleClearAllAssets = async () => {
+    if (!window.confirm("This will permanently delete ALL assets. Are you sure?")) return;
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, "assets"));
+      for (const d of snap.docs) {
+        await deleteDoc(doc(db, "assets", d.id));
+      }
+      setAssets([]);
+    } catch (err) {
+      console.error("Failed to clear assets:", err);
+    }
+    setLoading(false);
+  };
+
   if (selected) {
     return (
       <AssetDetail
@@ -894,6 +909,9 @@ function AssetsTab() {
         <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileSelect} style={{ display: "none" }} />
         <button onClick={() => fileInputRef.current?.click()} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.dark, color: T.accent, border: `1px solid ${T.accent}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
           Import CSV
+        </button>
+        <button onClick={handleClearAllAssets} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: "#5a1a1a", color: "#ff6b6b", border: "1px solid #ff6b6b", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+          Clear All
         </button>
       </div>
 
