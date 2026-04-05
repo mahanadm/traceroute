@@ -1235,8 +1235,8 @@ export default function App() {
   const themeToggleValue = { mode: themeMode, toggle: toggleTheme };
 
   const header = (extra) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <h1 style={{ margin: "0", fontSize: "1.4rem", color: "#fff" }}>Traceroute Hardware Tracker{extra || ""}</h1>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.bg, padding: "0.5rem 0" }}>
+      <h1 style={{ margin: "0", fontSize: "1.4rem", color: T.text }}>Traceroute Hardware Tracker{extra || ""}</h1>
       <ThemeToggle />
     </div>
   );
