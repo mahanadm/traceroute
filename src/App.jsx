@@ -823,6 +823,7 @@ function AssetsTab({ onAddAsset, onManageLocations }) {
   };
 
   const handleInlineLocationChange = async (assetId, newLocation) => {
+    if (newLocation === "__add_location__") { onManageLocations(); return; }
     setEditingLocation(null);
     try {
       await updateDoc(doc(db, "assets", assetId), { location: newLocation, updatedAt: serverTimestamp() });
@@ -1100,6 +1101,7 @@ function AssetsTab({ onAddAsset, onManageLocations }) {
                       >
                         <option value="">—</option>
                         {locations.map((l) => <option key={l} value={l}>{l}</option>)}
+                        <option value="__add_location__">+ Add Location</option>
                       </select>
                     ) : (
                       <span style={{ borderBottom: `1px dashed ${T.muted}`, cursor: "pointer" }}>{a.location || "—"}</span>
@@ -1145,6 +1147,7 @@ function AssetsTab({ onAddAsset, onManageLocations }) {
                   >
                     <option value="">No location</option>
                     {locations.map((l) => <option key={l} value={l}>{l}</option>)}
+                    <option value="__add_location__">+ Add Location</option>
                   </select>
                 )}
                 <span style={{
