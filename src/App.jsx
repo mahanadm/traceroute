@@ -1236,7 +1236,7 @@ export default function App() {
 
   const header = (extra) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <h1 style={{ margin: "0", fontSize: "1.4rem" }}>&gt;tracerout<span style={{ color: T.accent }}>e</span>{extra || ""}</h1>
+      <h1 style={{ margin: "0", fontSize: "1.4rem", color: "#fff" }}>Traceroute Hardware Tracker{extra || ""}</h1>
       <ThemeToggle />
     </div>
   );
