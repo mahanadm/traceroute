@@ -806,6 +806,7 @@ function AssetsTab({ onAddAsset, onManageLocations }) {
   const [sortDir, setSortDir] = useState("asc");
   const [editingLocation, setEditingLocation] = useState(null);
   const [locationSaved, setLocationSaved] = useState(null);
+  const [missingSN, setMissingSN] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth > 768);
@@ -905,6 +906,7 @@ function AssetsTab({ onAddAsset, onManageLocations }) {
   const filtered = assets.filter((a) => {
     if (filter !== "All" && a.category !== filter) return false;
     if (locationFilter !== "All" && a.location !== locationFilter) return false;
+    if (missingSN && !(a.serialNumber || "").startsWith("IMPORT-")) return false;
     if (search) {
       const s = search.toLowerCase();
       if (!(
@@ -1044,6 +1046,9 @@ function AssetsTab({ onAddAsset, onManageLocations }) {
             {c}
           </button>
         ))}
+        <button onClick={() => setMissingSN(!missingSN)} style={pillStyle(missingSN)}>
+          Missing SN
+        </button>
       </div>
 
       {loading && <div style={{ color: T.muted }}>Loading assets...</div>}
