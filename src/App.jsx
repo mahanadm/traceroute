@@ -50,7 +50,7 @@ const CATEGORIES = [
   "WiFi",
 ];
 
-const LOCATIONS = [
+const DEFAULT_LOCATIONS = [
   "Josh's",
   "Mike's",
   "Riley's",
@@ -69,15 +69,18 @@ const LOCATIONS = [
   "Davide Pascucci/BrightIIoT",
 ];
 
+const LocationsContext = createContext(DEFAULT_LOCATIONS);
+
 const STATUSES = ["TR Owned", "Loaned Out", "Vendor Loan"];
 
 function ScanAssetDetail({ asset, onDone }) {
+  const locations = useContext(LocationsContext);
   const [form, setForm] = useState({
     serialNumber: asset.serialNumber || "",
     vendor: asset.vendor || "",
     modelNumber: asset.modelNumber || "",
     category: asset.category || CATEGORIES[0],
-    location: asset.location || LOCATIONS[0],
+    location: asset.location || locations[0],
     status: asset.status || STATUSES[0],
     notes: asset.notes || "",
     loanDate: asset.loanDate || "",
@@ -126,7 +129,7 @@ function ScanAssetDetail({ asset, onDone }) {
         <div style={{ fontWeight: "bold", marginBottom: "0.5rem", color: T.text }}>Quick Update Location</div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <select style={{ ...inputStyle, flex: 1 }} value={quickLocation} onChange={(e) => setQuickLocation(e.target.value)}>
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+            {locations.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
           <button onClick={handleUpdateLocation} disabled={saving} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
             {saving ? "..." : "Update Location"}
@@ -156,7 +159,7 @@ function ScanAssetDetail({ asset, onDone }) {
 
       <label style={labelStyle}>Location</label>
       <select style={inputStyle} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}>
-        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+        {locations.map((l) => <option key={l} value={l}>{l}</option>)}
       </select>
 
       <label style={labelStyle}>Status</label>
@@ -210,6 +213,7 @@ function ScanAssetDetail({ asset, onDone }) {
 }
 
 function ScanTab() {
+  const locations = useContext(LocationsContext);
   const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState(null);
@@ -473,7 +477,7 @@ function ScanTab() {
           <label style={labelStyle}>Location</label>
           <select style={inputStyle} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}>
             <option value="" disabled>Select location...</option>
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+            {locations.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
 
           <label style={labelStyle}>Status</label>
@@ -515,12 +519,13 @@ function ScanTab() {
 }
 
 function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
+  const locations = useContext(LocationsContext);
   const [form, setForm] = useState({
     serialNumber: asset.serialNumber || "",
     vendor: asset.vendor || "",
     modelNumber: asset.modelNumber || "",
     category: asset.category || CATEGORIES[0],
-    location: asset.location || LOCATIONS[0],
+    location: asset.location || locations[0],
     status: asset.status || STATUSES[0],
     notes: asset.notes || "",
     loanDate: asset.loanDate || "",
@@ -598,7 +603,7 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
 
       <label style={labelStyle}>Location</label>
       <select style={inputStyle} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}>
-        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+        {locations.map((l) => <option key={l} value={l}>{l}</option>)}
       </select>
 
       <label style={labelStyle}>Status</label>
@@ -783,7 +788,8 @@ function processCSVRows(rows) {
   return results;
 }
 
-function AssetsTab({ onAddAsset }) {
+function AssetsTab({ onAddAsset, onManageLocations }) {
+  const locations = useContext(LocationsContext);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
@@ -1003,14 +1009,17 @@ function AssetsTab({ onAddAsset }) {
         onChange={(e) => setSearch(e.target.value)}
         style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
       />
-      <select
-        value={locationFilter}
-        onChange={(e) => setLocationFilter(e.target.value)}
-        style={{ padding: "0.5rem", fontSize: "1rem", width: "100%", borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", marginBottom: "0.5rem", background: T.card, color: T.text }}
-      >
-        <option value="All">All Locations</option>
-        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-      </select>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          style={{ padding: "0.5rem", fontSize: "1rem", flex: 1, borderRadius: "6px", border: `1px solid ${T.border}`, boxSizing: "border-box", background: T.card, color: T.text }}
+        >
+          <option value="All">All Locations</option>
+          {locations.map((l) => <option key={l} value={l}>{l}</option>)}
+        </select>
+        <button onClick={onManageLocations} title="Manage Locations" style={{ padding: "0.5rem 0.6rem", fontSize: "1rem", background: T.dark, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer" }}>⚙</button>
+      </div>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileSelect} style={{ display: "none" }} />
         <button onClick={() => fileInputRef.current?.click()} style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", background: T.dark, color: T.accent, border: `1px solid ${T.accent}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
@@ -1090,7 +1099,7 @@ function AssetsTab({ onAddAsset }) {
                         style={{ padding: "0.2rem", fontSize: "0.8rem", background: T.dark, color: T.text, border: `1px solid ${T.accent}`, borderRadius: "4px", width: "100%" }}
                       >
                         <option value="">—</option>
-                        {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+                        {locations.map((l) => <option key={l} value={l}>{l}</option>)}
                       </select>
                     ) : (
                       <span style={{ borderBottom: `1px dashed ${T.muted}`, cursor: "pointer" }}>{a.location || "—"}</span>
@@ -1135,7 +1144,7 @@ function AssetsTab({ onAddAsset }) {
                     style={{ padding: "0.25rem 0.3rem", fontSize: "0.8rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "4px", flex: 1 }}
                   >
                     <option value="">No location</option>
-                    {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+                    {locations.map((l) => <option key={l} value={l}>{l}</option>)}
                   </select>
                 )}
                 <span style={{
@@ -1152,6 +1161,112 @@ function AssetsTab({ onAddAsset }) {
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function ManageLocations({ onBack, locations, setLocations }) {
+  const [newLocation, setNewLocation] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [deleting, setDeleting] = useState(null);
+
+  const handleAdd = async () => {
+    const name = newLocation.trim();
+    if (!name || locations.includes(name)) return;
+    try {
+      const id = name.replace(/[^a-zA-Z0-9]/g, "_");
+      await setDoc(doc(db, "locations", id), { name });
+      setLocations([...locations, name].sort());
+      setNewLocation("");
+    } catch (err) {
+      console.error("Failed to add location:", err);
+    }
+  };
+
+  const handleRename = async (oldName) => {
+    const name = editValue.trim();
+    if (!name || (name !== oldName && locations.includes(name))) return;
+    try {
+      const oldId = oldName.replace(/[^a-zA-Z0-9]/g, "_");
+      const newId = name.replace(/[^a-zA-Z0-9]/g, "_");
+      if (oldId !== newId) {
+        await deleteDoc(doc(db, "locations", oldId));
+      }
+      await setDoc(doc(db, "locations", newId), { name });
+      setLocations(locations.map((l) => (l === oldName ? name : l)).sort());
+      setEditingId(null);
+    } catch (err) {
+      console.error("Failed to rename location:", err);
+    }
+  };
+
+  const handleDelete = async (name) => {
+    try {
+      const id = name.replace(/[^a-zA-Z0-9]/g, "_");
+      await deleteDoc(doc(db, "locations", id));
+      setLocations(locations.filter((l) => l !== name));
+      setDeleting(null);
+    } catch (err) {
+      console.error("Failed to delete location:", err);
+    }
+  };
+
+  const inputStyle = { padding: "0.5rem", fontSize: "1rem", borderRadius: "6px", border: `1px solid ${T.border}`, background: T.card, color: T.text, boxSizing: "border-box" };
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", marginBottom: "1rem" }}>
+        ← Back
+      </button>
+      <h2 style={{ margin: "0 0 1rem", color: T.text }}>Manage Locations</h2>
+
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+        <input
+          type="text"
+          placeholder="New location name..."
+          value={newLocation}
+          onChange={(e) => setNewLocation(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <button onClick={handleAdd} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+          Add
+        </button>
+      </div>
+
+      {locations.map((name) => (
+        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", marginBottom: "0.5rem", background: T.card, borderRadius: "6px", border: `1px solid ${T.border}` }}>
+          {editingId === name ? (
+            <input
+              autoFocus
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleRename(name); if (e.key === "Escape") setEditingId(null); }}
+              style={{ ...inputStyle, flex: 1 }}
+            />
+          ) : (
+            <span style={{ flex: 1, color: T.text }}>{name}</span>
+          )}
+          {deleting === name ? (
+            <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", color: T.muted }}>Delete?</span>
+              <button onClick={() => handleDelete(name)} style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", background: "#CC3333", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>Yes</button>
+              <button onClick={() => setDeleting(null)} style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>No</button>
+            </div>
+          ) : editingId === name ? (
+            <div style={{ display: "flex", gap: "0.25rem" }}>
+              <button onClick={() => handleRename(name)} style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", background: T.accent, color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>Save</button>
+              <button onClick={() => setEditingId(null)} style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Cancel</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "0.25rem" }}>
+              <button onClick={() => { setEditingId(name); setEditValue(name); }} style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", background: T.dark, color: T.accent, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Edit</button>
+              <button onClick={() => setDeleting(name)} style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", background: T.dark, color: "#CC3333", border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Delete</button>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1226,9 +1341,32 @@ export default function App() {
     return false;
   });
   const [view, setView] = useState("assets");
+  const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
   const [themeMode, setThemeMode] = useState(() => {
     try { return localStorage.getItem("traceroute-theme") || "dark"; } catch { return "dark"; }
   });
+
+  // Load locations from Firestore, seed if empty
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "locations"));
+        if (snap.empty) {
+          // Seed Firestore with defaults
+          for (const name of DEFAULT_LOCATIONS) {
+            const id = name.replace(/[^a-zA-Z0-9]/g, "_");
+            await setDoc(doc(db, "locations", id), { name });
+          }
+          setLocations([...DEFAULT_LOCATIONS].sort());
+        } else {
+          const names = snap.docs.map((d) => d.data().name).sort();
+          setLocations(names);
+        }
+      } catch (err) {
+        console.error("Failed to load locations:", err);
+      }
+    })();
+  }, []);
 
   // Update the global T reference on every render so all components read current theme
   T = THEMES[themeMode];
@@ -1256,45 +1394,60 @@ export default function App() {
     </div>
   );
 
+  const wrap = (children) => (
+    <ThemeToggleContext.Provider value={themeToggleValue}>
+      <LocationsContext.Provider value={locations}>
+        {children}
+      </LocationsContext.Provider>
+    </ThemeToggleContext.Provider>
+  );
+
   if (!loggedIn) {
-    return (
-      <ThemeToggleContext.Provider value={themeToggleValue}>
-        <LoginScreen onLogin={(username) => {
-          try { localStorage.setItem("traceroute-session", JSON.stringify({ username, timestamp: Date.now() })); } catch {}
-          setLoggedIn(true);
-        }} header={header()} />
-      </ThemeToggleContext.Provider>
+    return wrap(
+      <LoginScreen onLogin={(username) => {
+        try { localStorage.setItem("traceroute-session", JSON.stringify({ username, timestamp: Date.now() })); } catch {}
+        setLoggedIn(true);
+      }} header={header()} />
+    );
+  }
+
+  if (view === "manageLocations") {
+    return wrap(
+      <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
+        <div style={{ padding: "1rem 1rem 0" }}>
+          {header(<span style={{ fontSize: "1rem", color: T.muted }}> / Locations</span>)}
+        </div>
+        <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
+          <ManageLocations onBack={() => setView("assets")} locations={locations} setLocations={setLocations} />
+        </div>
+      </div>
     );
   }
 
   if (view === "addAsset") {
-    return (
-      <ThemeToggleContext.Provider value={themeToggleValue}>
-        <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
-          <div style={{ padding: "1rem 1rem 0" }}>
-            <button onClick={() => setView("assets")} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", marginBottom: "0.75rem" }}>
-              ← Back
-            </button>
-            {header(<span style={{ fontSize: "1rem", color: T.muted }}> / Add Asset</span>)}
-          </div>
-          <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
-            <ScanTab />
-          </div>
+    return wrap(
+      <div style={{ fontFamily: "sans-serif", maxWidth: "500px", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text }}>
+        <div style={{ padding: "1rem 1rem 0" }}>
+          <button onClick={() => setView("assets")} style={{ padding: "0.5rem 1rem", fontSize: "1rem", background: T.dark, color: T.text, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", marginBottom: "0.75rem" }}>
+            ← Back
+          </button>
+          {header(<span style={{ fontSize: "1rem", color: T.muted }}> / Add Asset</span>)}
         </div>
-      </ThemeToggleContext.Provider>
+        <div style={{ flex: 1, padding: "0 1rem 1rem", overflowY: "auto" }}>
+          <ScanTab />
+        </div>
+      </div>
     );
   }
 
-  return (
-    <ThemeToggleContext.Provider value={themeToggleValue}>
-      <div style={{ fontFamily: "sans-serif", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: "0 1rem" }}>
-        <div style={{ padding: "1rem 0 0", marginBottom: "1rem" }}>
-          {header()}
-        </div>
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          <AssetsTab onAddAsset={() => setView("addAsset")} />
-        </div>
+  return wrap(
+    <div style={{ fontFamily: "sans-serif", margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.text, padding: "0 1rem" }}>
+      <div style={{ padding: "1rem 0 0", marginBottom: "1rem" }}>
+        {header()}
       </div>
-    </ThemeToggleContext.Provider>
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <AssetsTab onAddAsset={() => setView("addAsset")} onManageLocations={() => setView("manageLocations")} />
+      </div>
+    </div>
   );
 }
