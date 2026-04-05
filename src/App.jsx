@@ -1164,7 +1164,7 @@ function LoginScreen({ onLogin, header }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if ((username === "mike@traceroutellc.com" || username === "josh@traceroutellc.com") && password === "fiction-hei-need") {
-      onLogin();
+      onLogin(username);
     } else {
       setError("Invalid credentials");
     }
@@ -1217,7 +1217,14 @@ function ThemeToggle() {
 const ThemeToggleContext = createContext({ mode: "dark", toggle: () => {} });
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(() => {
+    try {
+      const session = JSON.parse(localStorage.getItem("traceroute-session"));
+      if (session && Date.now() - session.timestamp < 14 * 24 * 60 * 60 * 1000) return true;
+      localStorage.removeItem("traceroute-session");
+    } catch {}
+    return false;
+  });
   const [view, setView] = useState("assets");
   const [themeMode, setThemeMode] = useState(() => {
     try { return localStorage.getItem("traceroute-theme") || "dark"; } catch { return "dark"; }
@@ -1234,17 +1241,28 @@ export default function App() {
 
   const themeToggleValue = { mode: themeMode, toggle: toggleTheme };
 
+  const handleLogout = () => {
+    try { localStorage.removeItem("traceroute-session"); } catch {}
+    setLoggedIn(false);
+  };
+
   const header = (extra) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.bg, padding: "0.5rem 0" }}>
       <h1 style={{ margin: "0", fontSize: "1.4rem", color: T.text }}>Traceroute Hardware Tracker{extra || ""}</h1>
-      <ThemeToggle />
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <ThemeToggle />
+        {loggedIn && <button onClick={handleLogout} style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: "4px", cursor: "pointer" }}>Logout</button>}
+      </div>
     </div>
   );
 
   if (!loggedIn) {
     return (
       <ThemeToggleContext.Provider value={themeToggleValue}>
-        <LoginScreen onLogin={() => setLoggedIn(true)} header={header()} />
+        <LoginScreen onLogin={(username) => {
+          try { localStorage.setItem("traceroute-session", JSON.stringify({ username, timestamp: Date.now() })); } catch {}
+          setLoggedIn(true);
+        }} header={header()} />
       </ThemeToggleContext.Provider>
     );
   }
