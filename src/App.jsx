@@ -115,8 +115,17 @@ function ScanAssetDetail({ asset, onDone }) {
     setSaving(true);
     setMessage(null);
     try {
-      await updateDoc(doc(db, "assets", asset.id), { ...form, updatedAt: serverTimestamp() });
-      setMessage("Changes saved!");
+      const newSN = form.serialNumber.trim();
+      if (!newSN) { setMessage("Serial number cannot be empty."); setSaving(false); return; }
+      if (newSN !== asset.serialNumber) {
+        const { serialNumber, ...dataWithoutSN } = form;
+        await setDoc(doc(db, "assets", newSN), { ...dataWithoutSN, serialNumber: newSN, updatedAt: serverTimestamp() });
+        await deleteDoc(doc(db, "assets", asset.id));
+        setMessage("Changes saved! Serial number updated.");
+      } else {
+        await updateDoc(doc(db, "assets", asset.id), { ...form, updatedAt: serverTimestamp() });
+        setMessage("Changes saved!");
+      }
     } catch (err) {
       setMessage("Failed to save changes.");
     }
@@ -144,7 +153,10 @@ function ScanAssetDetail({ asset, onDone }) {
       )}
 
       <label style={labelStyle}>Serial Number</label>
-      <input style={{ ...inputStyle, background: "#000", color: "#fff", border: `1px solid ${T.accent}` }} value={form.serialNumber} readOnly />
+      <input style={{ ...inputStyle, border: `1px solid ${T.accent}` }} value={form.serialNumber} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} />
+      {form.serialNumber !== asset.serialNumber && (
+        <div style={{ marginTop: "0.25rem", padding: "0.4rem 0.6rem", background: "#5a4a00", borderRadius: "4px", fontSize: "0.8rem", color: "#ffd966" }}>Changing the serial number will update the asset ID</div>
+      )}
 
       <label style={labelStyle}>Vendor</label>
       <input style={inputStyle} value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
@@ -547,9 +559,19 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
     setSaving(true);
     setMessage(null);
     try {
-      await updateDoc(doc(db, "assets", asset.id), { ...form, updatedAt: serverTimestamp() });
-      setMessage("Changes saved!");
-      onUpdated({ ...asset, ...form });
+      const newSN = form.serialNumber.trim();
+      if (!newSN) { setMessage("Serial number cannot be empty."); setSaving(false); return; }
+      if (newSN !== asset.serialNumber) {
+        const { serialNumber, ...dataWithoutSN } = form;
+        await setDoc(doc(db, "assets", newSN), { ...dataWithoutSN, serialNumber: newSN, updatedAt: serverTimestamp() });
+        await deleteDoc(doc(db, "assets", asset.id));
+        setMessage("Changes saved! Serial number updated.");
+        onUpdated({ ...asset, ...form, id: newSN, serialNumber: newSN });
+      } else {
+        await updateDoc(doc(db, "assets", asset.id), { ...form, updatedAt: serverTimestamp() });
+        setMessage("Changes saved!");
+        onUpdated({ ...asset, ...form });
+      }
     } catch (err) {
       setMessage("Failed to save changes.");
     }
@@ -588,7 +610,10 @@ function AssetDetail({ asset, onBack, onDeleted, onUpdated }) {
       )}
 
       <label style={labelStyle}>Serial Number</label>
-      <input style={{ ...inputStyle, background: "#000", color: "#fff", border: `1px solid ${T.accent}` }} value={form.serialNumber} readOnly />
+      <input style={{ ...inputStyle, border: `1px solid ${T.accent}` }} value={form.serialNumber} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} />
+      {form.serialNumber !== asset.serialNumber && (
+        <div style={{ marginTop: "0.25rem", padding: "0.4rem 0.6rem", background: "#5a4a00", borderRadius: "4px", fontSize: "0.8rem", color: "#ffd966" }}>Changing the serial number will update the asset ID</div>
+      )}
 
       <label style={labelStyle}>Vendor</label>
       <input style={inputStyle} value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
