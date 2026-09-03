@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="watch_face_name">Tactical</string>
+
+    <!-- Editor labels. Referenced by bare resource name from watchface.xml. -->
+    <string name="theme_label">Colour theme</string>
+    <string name="theme_lime">Tactical Lime</string>
+    <string name="theme_amber">Amber Ops</string>
+    <string name="theme_arctic">Arctic</string>
+    <string name="seconds_label">Show seconds</string>
+    <string name="ghost_label">Show unlit segments</string>
+    <string name="slot_field_label">Data field</string>
+    <string name="slot_sun_label">Sun times</string>
+</resources>

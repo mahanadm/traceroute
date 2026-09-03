@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tactical instrument watch face, in Watch Face Format.
+
+  Authored on WFF's canonical 450x450 canvas; the system scales it to the
+  device (456x456 on a Pixel Watch 4 45mm). Keep anything that must stay
+  readable inside a radius of ~200 from centre (225,225) - the outer band is
+  where the domed edge of the display distorts.
+
+  Layout map (450-space):
+    64..190   status stack   battery / heart rate / weather, left column
+    56..196   weekday strip  S M T W T F S, x 266..298
+    105..187  date badge     circle, centre (338,146)
+    196..288  LCD panel      7-segment time, ghost segments behind
+    294..350  ZULU + slot 0  UTC time, and one user complication
+    338..378  slot 1         wide complication, defaults to sunrise/sunset
+
+  Colours come from the user-selectable theme in UserConfigurations:
+    accent.0  primary   accent.1  secondary   accent.2  unlit segments
+    accent.3  LCD panel fill
+-->
+<WatchFace width="450" height="450">
+  <Metadata key="CLOCK_TYPE" value="DIGITAL" />
+  <Metadata key="PREVIEW_TIME" value="12:17:38" />
+
+  <BitmapFonts>
+    <!--
+      Weather icons indexed by [WEATHER.CONDITION]. Treating the condition
+      enum as a character name lets one Template pick the right glyph with no
+      Condition ladder. Indices follow the WFF weather condition enum; anything
+      above 15 falls back to index 0.
+    -->
+    <BitmapFont name="wx_day">
+      <Character name="0" resource="ic_unknown" width="48" height="48" />
+      <Character name="1" resource="ic_clear" width="48" height="48" />
+      <Character name="2" resource="ic_cloudy" width="48" height="48" />
+      <Character name="3" resource="ic_fog" width="48" height="48" />
+      <Character name="4" resource="ic_heavy_rain" width="48" height="48" />
+      <Character name="5" resource="ic_heavy_snow" width="48" height="48" />
+      <Character name="6" resource="ic_rain" width="48" height="48" />
+      <Character name="7" resource="ic_snow" width="48" height="48" />
+      <Character name="8" resource="ic_sunny" width="48" height="48" />
+      <Character name="9" resource="ic_thunderstorm" width="48" height="48" />
+      <Word name="10" resource="ic_sleet" width="48" height="48" />
+      <Word name="11" resource="ic_snow" width="48" height="48" />
+      <Word name="12" resource="ic_rain" width="48" height="48" />
+      <Word name="13" resource="ic_mist" width="48" height="48" />
+      <Word name="14" resource="ic_partly_cloudy_day" width="48" height="48" />
+      <Word name="15" resource="ic_windy" width="48" height="48" />
+    </BitmapFont>
+    <BitmapFont name="wx_night">
+      <Character name="0" resource="ic_unknown" width="48" height="48" />
+      <Character name="1" resource="ic_clear" width="48" height="48" />
+      <Character name="2" resource="ic_cloudy" width="48" height="48" />
+      <Character name="3" resource="ic_fog" width="48" height="48" />
+      <Character name="4" resource="ic_heavy_rain" width="48" height="48" />
+      <Character name="5" resource="ic_heavy_snow" width="48" height="48" />
+      <Character name="6" resource="ic_rain" width="48" height="48" />
+      <Character name="7" resource="ic_snow" width="48" height="48" />
+      <Character name="8" resource="ic_clear" width="48" height="48" />
+      <Character name="9" resource="ic_thunderstorm" width="48" height="48" />
+      <Word name="10" resource="ic_sleet" width="48" height="48" />
+      <Word name="11" resource="ic_snow" width="48" height="48" />
+      <Word name="12" resource="ic_rain" width="48" height="48" />
+      <Word name="13" resource="ic_mist" width="48" height="48" />
+      <Word name="14" resource="ic_partly_cloudy_night" width="48" height="48" />
+      <Word name="15" resource="ic_windy" width="48" height="48" />
+    </BitmapFont>
+  </BitmapFonts>
+
+  <UserConfigurations>
+    <ColorConfiguration id="accent" displayName="theme_label"
+        screenReaderText="theme_label" defaultValue="0">
+      <ColorOption id="0" displayName="theme_lime"
+          colors="#ffb5ff29 #fff2c14e #ff17330a #ff0a1408" />
+      <ColorOption id="1" displayName="theme_amber"
+          colors="#ffffb020 #ffe8e8e8 #ff33220a #ff140d02" />
+      <ColorOption id="2" displayName="theme_arctic"
+          colors="#ff7fd7ff #ffe8e8e8 #ff0a2836 #ff05131a" />
+    </ColorConfiguration>
+    <BooleanConfiguration id="showSeconds" displayName="seconds_label"
+        screenReaderText="seconds_label" defaultValue="TRUE" />
+    <BooleanConfiguration id="showGhost" displayName="ghost_label"
+        screenReaderText="ghost_label" defaultValue="TRUE" />
+  </UserConfigurations>
+
+  <Scene backgroundColor="#ff000000">
+
+    <!-- ============================================================
+         INTERACTIVE
+         Everything rich. Faded out entirely on entering ambient; the
+         ambient group below takes over.
+         ============================================================ -->
+    <Group x="0" y="0" width="450" height="450" name="interactive" alpha="255">
+      <Variant mode="AMBIENT" target="alpha" value="0" />
+
+      <!-- ~~ chrome: slanted dividers, Instinct-style ~~ -->
+      <PartDraw x="0" y="0" width="450" height="450" name="dividers">
+        <Line startX="70" startY="103" endX="248" endY="97">
+          <Stroke color="#ff3a3a3a" thickness="1.5" />
+        </Line>
+        <Line startX="76" startY="147" endX="248" endY="141">
+          <Stroke color="#ff3a3a3a" thickness="1.5" />
+        </Line>
+        <Line startX="60" startY="191" endX="248" endY="185">
+          <Stroke color="#ff3a3a3a" thickness="1.5" />
+        </Line>
+        <Line startX="254" startY="56" endX="264" endY="212">
+          <Stroke color="#ff3a3a3a" thickness="1.5" />
+        </Line>
+        <Line startX="225" startY="300" endX="225" endY="338">
+          <Stroke color="#ff3a3a3a" thickness="1.5" />
+        </Line>
+        <Line startX="120" startY="344" endX="330" endY="344">
+          <Stroke color="#ff3a3a3a" thickness="1.5" />
+        </Line>
+      </PartDraw>
+
+      <!-- ~~ status stack ~~ -->
+      <PartImage x="112" y="65" width="34" height="34" name="battery_icon"
+          tintColor="[CONFIGURATION.accent.1]">
+        <Image resource="ic_battery" />
+        <!-- Battery icon flips to the primary accent while charging. -->
+        <Transform target="tintColor"
+            value="[BATTERY_CHARGING_STATUS] ? [CONFIGURATION.accent.0] : [CONFIGURATION.accent.1]" />
+      </PartImage>
+      <PartText x="156" y="62" width="120" height="40" name="battery_value">
+        <Text align="START">
+          <Font family="SYNC_TO_DEVICE" size="30" weight="BOLD"
+              color="[CONFIGURATION.accent.0]">
+            <Template><![CDATA[%d%%]]>
+              <Parameter expression="[BATTERY_PERCENT]" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+
+      <PartImage x="112" y="109" width="34" height="34" name="hr_icon"
+          tintColor="[CONFIGURATION.accent.1]">
+        <Image resource="ic_heart" />
+      </PartImage>
+      <PartText x="156" y="106" width="120" height="40" name="hr_value">
+        <Text align="START">
+          <Font family="SYNC_TO_DEVICE" size="30" weight="BOLD"
+              color="[CONFIGURATION.accent.0]">
+            <!-- HEART_RATE is a float on some devices; round it. 0 means "no
+                 reading yet", which we show as the Garmin-style em dash. -->
+            <Template><![CDATA[%s]]>
+              <Parameter expression="round([HEART_RATE]) > 0 ? round([HEART_RATE]) : &quot;--&quot;" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+
+      <Condition>
+        <Expressions>
+          <Expression name="weather_ok"><![CDATA[[WEATHER.IS_AVAILABLE]]]></Expression>
+        </Expressions>
+        <Compare expression="weather_ok">
+          <Condition>
+            <Expressions>
+              <Expression name="is_day"><![CDATA[[WEATHER.IS_DAY]]]></Expression>
+            </Expressions>
+            <Compare expression="is_day">
+              <PartText x="110" y="152" width="38" height="38" name="wx_icon_day">
+                <Text align="CENTER">
+                  <BitmapFont family="wx_day" size="38"
+                      color="[CONFIGURATION.accent.1]">
+                    <Template><![CDATA[%s]]>
+                      <Parameter expression="[WEATHER.CONDITION] &lt;= 15 ? [WEATHER.CONDITION] : 0" />
+                    </Template>
+                  </BitmapFont>
+                </Text>
+              </PartText>
+            </Compare>
+            <Default>
+              <PartText x="110" y="152" width="38" height="38" name="wx_icon_night">
+                <Text align="CENTER">
+                  <BitmapFont family="wx_night" size="38"
+                      color="[CONFIGURATION.accent.1]">
+                    <Template><![CDATA[%s]]>
+                      <Parameter expression="[WEATHER.CONDITION] &lt;= 15 ? [WEATHER.CONDITION] : 0" />
+                    </Template>
+                  </BitmapFont>
+                </Text>
+              </PartText>
+            </Default>
+          </Condition>
+          <PartText x="156" y="150" width="120" height="40" name="wx_temp">
+            <Text align="START">
+              <Font family="SYNC_TO_DEVICE" size="30" weight="BOLD"
+                  color="[CONFIGURATION.accent.0]">
+                <Template><![CDATA[%d°]]>
+                  <Parameter expression="[WEATHER.TEMPERATURE]" />
+                </Template>
+              </Font>
+            </Text>
+          </PartText>
+        </Compare>
+        <Default>
+          <!-- No weather yet (no location, or not paired). Hold the slot so
+               the layout does not reflow. -->
+          <PartText x="156" y="150" width="120" height="40" name="wx_absent">
+            <Text align="START">
+              <Font family="SYNC_TO_DEVICE" size="30" weight="BOLD"
+                  color="#ff5a5a5a"><![CDATA[--°]]></Font>
+            </Text>
+          </PartText>
+        </Default>
+      </Condition>
+
+      <!-- ~~ weekday strip: S M T W T F S, Sunday first ~~
+           DAY_OF_WEEK is 1=Sunday .. 7=Saturday, so the highlight's y is a
+           straight function of it. Letters are drawn light; the highlight
+           block covers the active one, and a dark duplicate is faded in on
+           top of the block.                                          -->
+      <PartText x="266" y="56" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">S</Font></Text></PartText>
+      <PartText x="266" y="76" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">M</Font></Text></PartText>
+      <PartText x="266" y="96" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">T</Font></Text></PartText>
+      <PartText x="266" y="116" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">W</Font></Text></PartText>
+      <PartText x="266" y="136" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">T</Font></Text></PartText>
+      <PartText x="266" y="156" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">F</Font></Text></PartText>
+      <PartText x="266" y="176" width="32" height="20"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" color="#ffcccccc">S</Font></Text></PartText>
+
+      <PartDraw x="266" y="56" width="32" height="20" name="weekday_highlight">
+        <Rectangle x="0" y="0" width="32" height="20">
+          <Fill color="[CONFIGURATION.accent.0]" />
+        </Rectangle>
+        <Transform target="y" value="56 + ([DAY_OF_WEEK] - 1) * 20" />
+      </PartDraw>
+
+      <PartText x="266" y="56" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">S</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 1 ? 255 : 0" /></PartText>
+      <PartText x="266" y="76" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">M</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 2 ? 255 : 0" /></PartText>
+      <PartText x="266" y="96" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">T</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 3 ? 255 : 0" /></PartText>
+      <PartText x="266" y="116" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">W</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 4 ? 255 : 0" /></PartText>
+      <PartText x="266" y="136" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">T</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 5 ? 255 : 0" /></PartText>
+      <PartText x="266" y="156" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">F</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 6 ? 255 : 0" /></PartText>
+      <PartText x="266" y="176" width="32" height="20" alpha="0"><Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="15" weight="BOLD" color="#ff000000">S</Font></Text><Transform target="alpha" value="[DAY_OF_WEEK] == 7 ? 255 : 0" /></PartText>
+
+      <!-- ~~ date badge ~~ -->
+      <PartDraw x="297" y="105" width="82" height="82" name="date_badge">
+        <Ellipse x="0" y="0" width="82" height="82">
+          <Fill color="[CONFIGURATION.accent.2]" />
+          <Stroke color="[CONFIGURATION.accent.0]" thickness="3" />
+        </Ellipse>
+      </PartDraw>
+      <PartText x="297" y="118" width="82" height="30" name="date_month">
+        <Text align="CENTER">
+          <Font family="SYNC_TO_DEVICE" size="23" weight="BOLD"
+              color="[CONFIGURATION.accent.0]">
+            <Template><![CDATA[%s]]>
+              <Parameter expression="[MONTH_S]" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+      <PartText x="297" y="146" width="82" height="32" name="date_day">
+        <Text align="CENTER">
+          <Font family="SYNC_TO_DEVICE" size="27" weight="BOLD"
+              color="[CONFIGURATION.accent.0]">
+            <Template><![CDATA[%d]]>
+              <Parameter expression="[DAY]" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+
+      <!-- ~~ LCD panel ~~ -->
+      <PartDraw x="20" y="196" width="410" height="92" name="lcd_panel">
+        <RoundRectangle x="0" y="0" width="410" height="92"
+            cornerRadiusX="8" cornerRadiusY="8">
+          <Fill color="[CONFIGURATION.accent.3]" />
+          <Stroke color="#ff242c20" thickness="1.5" />
+        </RoundRectangle>
+      </PartDraw>
+
+      <!-- Unlit segments. DSEG7 is monospaced, so "88:88" sits exactly under
+           the live digits and gives the dead-segment look of a real LCD. -->
+      <BooleanConfiguration id="showGhost">
+        <BooleanOption id="TRUE">
+          <Group x="0" y="0" width="450" height="450" name="ghost_segments">
+            <PartText x="28" y="196" width="350" height="92" name="ghost_time">
+            <Text align="START">
+              <Font family="dseg7_bold" size="68" color="[CONFIGURATION.accent.2]"><![CDATA[88:88]]></Font>
+            </Text>
+          </PartText>
+          <PartText x="376" y="198" width="52" height="44" name="ghost_seconds">
+            <Text align="CENTER">
+              <Font family="dseg7_bold" size="26" color="[CONFIGURATION.accent.2]"><![CDATA[88]]></Font>
+            </Text>
+          </PartText>
+          </Group>
+        </BooleanOption>
+      </BooleanConfiguration>
+
+      <DigitalClock x="0" y="0" width="450" height="450">
+        <TimeText x="28" y="196" width="350" height="92" format="hh:mm"
+            hourFormat="SYNC_TO_DEVICE" align="START">
+          <Font family="dseg7_bold" size="68" color="[CONFIGURATION.accent.0]" />
+        </TimeText>
+      </DigitalClock>
+
+      <BooleanConfiguration id="showSeconds">
+        <BooleanOption id="TRUE">
+          <DigitalClock x="0" y="0" width="450" height="450">
+            <TimeText x="376" y="198" width="52" height="44" format="ss"
+                align="CENTER">
+              <Font family="dseg7_bold" size="26" color="[CONFIGURATION.accent.0]" />
+            </TimeText>
+          </DigitalClock>
+        </BooleanOption>
+      </BooleanConfiguration>
+
+      <PartImage x="387" y="245" width="28" height="28" name="lcd_mark"
+          tintColor="[CONFIGURATION.accent.0]">
+        <Image resource="ic_mountain" />
+      </PartImage>
+
+      <!-- ~~ ZULU ~~
+           No UTC data source exists, but Localization takes any IANA zone,
+           so the time-of-day expressions below resolve against UTC. -->
+      <PartText x="42" y="296" width="60" height="34" name="zulu_label">
+        <Text align="START">
+          <Font family="SYNC_TO_DEVICE" size="21"
+              color="[CONFIGURATION.accent.1]"><![CDATA[ZULU]]></Font>
+        </Text>
+      </PartText>
+      <PartText x="108" y="294" width="110" height="38" name="zulu_value">
+        <Localization timeZone="UTC" calendar="GREGORIAN" />
+        <Text align="START">
+          <Font family="SYNC_TO_DEVICE" size="26" weight="BOLD" color="#ffe8e8e8">
+            <Template><![CDATA[%s%s]]>
+              <Parameter expression="[HOUR_0_23_Z]" />
+              <Parameter expression="[MINUTE_Z]" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+    </Group>
+
+    <!-- ============================================================
+         COMPLICATION SLOTS
+         Outside both groups so a slot keeps one identity. Hidden in
+         ambient: the values here are near-static across a whole day,
+         which is exactly what burns an OLED.
+         ============================================================ -->
+    <ComplicationSlot x="240" y="288" width="176" height="52" slotId="0"
+        name="field_right" displayName="slot_field_label"
+        supportedTypes="SHORT_TEXT RANGED_VALUE MONOCHROMATIC_IMAGE EMPTY"
+        alpha="255">
+      <BoundingBox x="0" y="0" width="176" height="52" outlinePadding="2.0" />
+      <Variant mode="AMBIENT" target="alpha" value="0" />
+      <DefaultProviderPolicy
+          defaultSystemProvider="STEP_COUNT"
+          defaultSystemProviderType="SHORT_TEXT" />
+      <Complication type="SHORT_TEXT">
+        <Condition>
+          <Expressions>
+            <Expression name="has_icon"><![CDATA[[COMPLICATION.MONOCHROMATIC_IMAGE] != null]]></Expression>
+          </Expressions>
+          <Compare expression="has_icon">
+            <PartImage x="6" y="13" width="26" height="26"
+                tintColor="[CONFIGURATION.accent.1]">
+              <Image resource="[COMPLICATION.MONOCHROMATIC_IMAGE]" />
+            </PartImage>
+            <PartText x="40" y="8" width="132" height="38">
+              <Text align="START" ellipsis="TRUE">
+                <Font family="SYNC_TO_DEVICE" size="26" weight="BOLD" color="#ffe8e8e8">
+                  <Template><![CDATA[%s]]>
+                    <Parameter expression="[COMPLICATION.TEXT]" />
+                  </Template>
+                </Font>
+              </Text>
+            </PartText>
+          </Compare>
+          <Default>
+            <PartText x="6" y="8" width="166" height="38">
+              <Text align="START" ellipsis="TRUE">
+                <Font family="SYNC_TO_DEVICE" size="26" weight="BOLD" color="#ffe8e8e8">
+                  <Template><![CDATA[%s]]>
+                    <Parameter expression="[COMPLICATION.TEXT]" />
+                  </Template>
+                </Font>
+              </Text>
+            </PartText>
+          </Default>
+        </Condition>
+      </Complication>
+      <Complication type="MONOCHROMATIC_IMAGE">
+        <PartImage x="75" y="13" width="26" height="26"
+            tintColor="[CONFIGURATION.accent.1]">
+          <Image resource="[COMPLICATION.MONOCHROMATIC_IMAGE]" />
+        </PartImage>
+      </Complication>
+    </ComplicationSlot>
+
+    <ComplicationSlot x="110" y="336" width="230" height="48" slotId="1"
+        name="field_bottom" displayName="slot_sun_label"
+        supportedTypes="SHORT_TEXT MONOCHROMATIC_IMAGE EMPTY"
+        alpha="255">
+      <BoundingBox x="0" y="0" width="230" height="48" outlinePadding="2.0" />
+      <Variant mode="AMBIENT" target="alpha" value="0" />
+      <DefaultProviderPolicy
+          defaultSystemProvider="SUNRISE_SUNSET"
+          defaultSystemProviderType="SHORT_TEXT" />
+      <Complication type="SHORT_TEXT">
+        <Condition>
+          <Expressions>
+            <Expression name="has_icon"><![CDATA[[COMPLICATION.MONOCHROMATIC_IMAGE] != null]]></Expression>
+          </Expressions>
+          <Compare expression="has_icon">
+            <PartImage x="52" y="12" width="24" height="24"
+                tintColor="[CONFIGURATION.accent.1]">
+              <Image resource="[COMPLICATION.MONOCHROMATIC_IMAGE]" />
+            </PartImage>
+            <PartText x="84" y="8" width="140" height="34">
+              <Text align="START" ellipsis="TRUE">
+                <Font family="SYNC_TO_DEVICE" size="23" weight="BOLD" color="#ffe8e8e8">
+                  <Template><![CDATA[%s]]>
+                    <Parameter expression="[COMPLICATION.TEXT]" />
+                  </Template>
+                </Font>
+              </Text>
+            </PartText>
+          </Compare>
+          <Default>
+            <PartText x="0" y="8" width="230" height="34">
+              <Text align="CENTER" ellipsis="TRUE">
+                <Font family="SYNC_TO_DEVICE" size="23" weight="BOLD" color="#ffe8e8e8">
+                  <Template><![CDATA[%s]]>
+                    <Parameter expression="[COMPLICATION.TEXT]" />
+                  </Template>
+                </Font>
+              </Text>
+            </PartText>
+          </Default>
+        </Condition>
+      </Complication>
+    </ComplicationSlot>
+
+    <!-- ============================================================
+         AMBIENT
+         Sparse by design: time, date, battery. The whole group walks a
+         few pixels on a 16-minute cycle so no segment sits on the same
+         OLED sub-pixel all day.
+         ============================================================ -->
+    <Group x="0" y="0" width="450" height="450" name="ambient" alpha="0">
+      <Variant mode="AMBIENT" target="alpha" value="255" />
+      <Transform target="x" value="(([MINUTE] % 4) - 1.5) * 3" />
+      <Transform target="y" value="((floor([MINUTE] / 4) % 4) - 1.5) * 3" />
+
+      <DigitalClock x="0" y="0" width="450" height="450">
+        <TimeText x="28" y="196" width="350" height="92" format="hh:mm"
+            hourFormat="SYNC_TO_DEVICE" align="START" alpha="180">
+          <Font family="dseg7_light" size="68" color="[CONFIGURATION.accent.0]" />
+        </TimeText>
+      </DigitalClock>
+
+      <PartText x="0" y="300" width="450" height="34" name="date_ambient" alpha="130">
+        <Text align="CENTER">
+          <Font family="SYNC_TO_DEVICE" size="22" color="#ffe8e8e8">
+            <Template><![CDATA[%s %d %s]]>
+              <Parameter expression="[DAY_OF_WEEK_S]" />
+              <Parameter expression="[DAY]" />
+              <Parameter expression="[MONTH_S]" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+
+      <PartText x="0" y="150" width="450" height="34" name="battery_ambient" alpha="110">
+        <Text align="CENTER">
+          <Font family="SYNC_TO_DEVICE" size="22" color="[CONFIGURATION.accent.1]">
+            <Template><![CDATA[%d%%]]>
+              <Parameter expression="[BATTERY_PERCENT]" />
+            </Template>
+          </Font>
+        </Text>
+      </PartText>
+    </Group>
+
+  </Scene>
+</WatchFace>

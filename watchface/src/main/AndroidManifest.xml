@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <uses-feature android:name="android.hardware.type.watch" />
+
+  <!-- hasCode must be false: Watch Face Format bundles are resource-only. -->
+  <application
+      android:label="@string/watch_face_name"
+      android:hasCode="false">
+
+    <meta-data
+        android:name="com.google.android.wearable.standalone"
+        android:value="true" />
+
+    <!-- v4 = Wear OS 6. Lower to 3 (and minSdk to 35) to reach Wear OS 5.1. -->
+    <property
+        android:name="com.google.wear.watchface.format.version"
+        android:value="4" />
+  </application>
+</manifest>
