@@ -77,7 +77,23 @@ const standings = {
   ],
 };
 
-const teams = { sports: [{ leagues: [{ teams: Object.values(T).map(t => ({ team: { ...t, logos: [{ href: t.logo }] } })) }] }] };
+// ESPN answers with all 32; anything short of that makes the page fall back to
+// its built-in roster, so the happy-path fixture has to be complete.
+const REST = [
+  ['33','BAL','Baltimore Ravens'], ['4','CIN','Cincinnati Bengals'], ['5','CLE','Cleveland Browns'],
+  ['23','PIT','Pittsburgh Steelers'], ['34','HOU','Houston Texans'], ['11','IND','Indianapolis Colts'],
+  ['30','JAX','Jacksonville Jaguars'], ['10','TEN','Tennessee Titans'], ['24','LAC','Los Angeles Chargers'],
+  ['13','LV','Las Vegas Raiders'], ['17','NE','New England Patriots'], ['6','DAL','Dallas Cowboys'],
+  ['19','NYG','New York Giants'], ['21','PHI','Philadelphia Eagles'], ['28','WSH','Washington Commanders'],
+  ['3','CHI','Chicago Bears'], ['8','DET','Detroit Lions'], ['9','GB','Green Bay Packers'],
+  ['16','MIN','Minnesota Vikings'], ['1','ATL','Atlanta Falcons'], ['29','CAR','Carolina Panthers'],
+  ['18','NO','New Orleans Saints'], ['27','TB','Tampa Bay Buccaneers'], ['22','ARI','Arizona Cardinals'],
+  ['14','LAR','Los Angeles Rams'],
+].map(([id, abbreviation, displayName]) => ({ id, abbreviation, displayName, color: '222222',
+  logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbreviation.toLowerCase() + '.png' }));
+
+const allTeams = [...Object.values(T), ...REST];
+const teams = { sports: [{ leagues: [{ teams: allTeams.map(t => ({ team: { ...t, logos: [{ href: t.logo }] } })) }] }] };
 
 const teamDetail = { team: { ...T.BUF, logos: [{ href: T.BUF.logo }],
   record: { items: [{ type: 'total', description: 'Overall Record', summary: '2-0' }] },

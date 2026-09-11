@@ -94,7 +94,7 @@ const check = (name, cond, extra='') => { console.log((cond?'  PASS  ':'  FAIL  
   console.log('\n--- TEAMS ---');
   await page.click('nav.tabs button:has-text("Teams")');
   await page.waitForSelector('.tcard', { timeout: 10000 });
-  check('team cards rendered', (await page.$$('.tcard')).length === 7);
+  check('all 32 teams rendered', (await page.$$('.tcard')).length === 32);
   check('division subtitle', (await page.textContent('.tcard')).includes('AFC East'));
   await page.screenshot({ path: OUT + '/03-teams.png', fullPage: true });
 
@@ -114,7 +114,7 @@ const check = (name, cond, extra='') => { console.log((cond?'  PASS  ':'  FAIL  
   await page.screenshot({ path: OUT + '/04-team-detail.png', fullPage: true });
   await page.click('.backbtn');
   await page.waitForSelector('.tcard', { timeout: 5000 });
-  check('back to team grid', (await page.$$('.tcard')).length === 7);
+  check('back to team grid', (await page.$$('.tcard')).length === 32);
 
   console.log('\n--- LEADERS ---');
   await page.click('nav.tabs button:has-text("Leaders")');
@@ -177,6 +177,37 @@ const check = (name, cond, extra='') => { console.log((cond?'  PASS  ':'  FAIL  
   check('wide tables scroll instead of squashing', await p2.evaluate(() =>
     [...document.querySelectorAll('.tablewrap')].every(w => w.scrollWidth >= w.clientWidth)));
   await p2.screenshot({ path: OUT + '/08-standings-fallback.png', fullPage: true });
+
+  // /teams works here but /teams/{id} and /teams/{id}/schedule are down
+  await p2.goto(PAGE + '#teams/2');
+  await p2.waitForSelector('.thero', { timeout: 20000 });
+  check('team detail survives dead team endpoints', (await p2.textContent('.thero')).includes('Buffalo Bills'),
+    (await p2.textContent('.thero')).trim());
+  check('schedule derived from scoreboard', (await p2.$$('.srow')).length > 0);
+  check('derivation is disclosed', (await p2.textContent('#view')).includes('assembled from the weekly scoreboard'));
+  check('record computed from derived games', /Record \d+-\d+/.test(await p2.textContent('.thero')),
+    (await p2.textContent('.thero')).trim());
+  await p2.screenshot({ path: OUT + '/10-team-detail-fallback.png', fullPage: true });
+
+  const pT = await ctx.newPage();
+  await pT.route('**/*', route => {
+    const url = route.request().url();
+    if (url.startsWith('file://')) return route.continue();
+    if (/a\.espncdn\.com|\.jpg|\.png/.test(url)) return route.abort();
+    if (/\/teams(\?|$)/.test(url)) return route.abort();   // the reported failure
+    if (/\/scoreboard/.test(url)) return route.fulfill(json(F.scoreboard));
+    if (/\/standings/.test(url)) return route.fulfill(json(F.standings));
+    return route.fulfill({ status: 404, body: '{}' });
+  });
+  await pT.goto(PAGE + '#teams');
+  await pT.waitForSelector('.tcard', { timeout: 20000 });
+  check('Teams tab renders when /teams is unreachable', (await pT.$$('.tcard')).length === 32);
+  const rosterTxt = await pT.textContent('#view');
+  check('roster fallback keeps real names', rosterTxt.includes('Kansas City Chiefs') && rosterTxt.includes('Washington Commanders'));
+  check('no error box on the Teams tab', (await pT.$$('.note')).length === 0);
+  check('team names are not truncated', await pT.evaluate(() =>
+    [...document.querySelectorAll('.tcard .nm')].every(n => n.scrollWidth <= n.clientWidth + 1)));
+  await pT.screenshot({ path: OUT + '/11-teams-no-endpoint.png', fullPage: true });
 
   const p3 = await ctx.newPage();
   await p3.route('**/*', route => route.request().url().startsWith('file://') ? route.continue() : route.abort());

@@ -107,12 +107,12 @@ tbody tr:hover{background:var(--panel-2);cursor:pointer}
 .pos{color:var(--good)} .neg{color:var(--bad)}
 
 /* ---------- teams ---------- */
-.teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-.tcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px;display:flex;align-items:center;gap:11px;text-align:left;border-left:3px solid var(--line);transition:transform .12s ease}
+.teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px}
+.tcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px;display:flex;align-items:center;gap:11px;text-align:left;border-left:3px solid var(--line);transition:transform .12s ease;min-height:62px}
 .tcard:hover{transform:translateY(-2px);border-color:var(--accent)}
 .tcard img{width:34px;height:34px;object-fit:contain}
 .tcard .meta{min-width:0}
-.tcard .nm{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard .nm{font-weight:700;font-size:13.5px;line-height:1.25}
 .tcard .sub{font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
 
 /* team detail */
@@ -362,6 +362,10 @@ function normalizeEvent(ev) {
   return {
     id: ev.id,
     date: ev.date || comp.date,
+    week: (ev.week && ev.week.number) || null,
+    seasonType: (ev.seasonType && ev.seasonType.type)
+      || (ev.season && (ev.season.type && ev.season.type.type !== undefined ? ev.season.type.type : ev.season.type))
+      || null,
     state: type.state || 'pre',            // pre | in | post
     completed: !!type.completed,
     detail: type.shortDetail || type.detail || type.description || '',
@@ -520,19 +524,51 @@ function renderTicker(games) {
    Standings
    ============================================================ */
 
-/* Division membership is stable year to year; used only to rebuild the
-   standings locally if ESPN's standings endpoint is unavailable. */
-const DIVISIONS = {
-  'AFC East':  ['BUF', 'MIA', 'NE', 'NYJ'],
-  'AFC North': ['BAL', 'CIN', 'CLE', 'PIT'],
-  'AFC South': ['HOU', 'IND', 'JAX', 'TEN'],
-  'AFC West':  ['DEN', 'KC', 'LAC', 'LV'],
-  'NFC East':  ['DAL', 'NYG', 'PHI', 'WSH'],
-  'NFC North': ['CHI', 'DET', 'GB', 'MIN'],
-  'NFC South': ['ATL', 'CAR', 'NO', 'TB'],
-  'NFC West':  ['ARI', 'LAR', 'SEA', 'SF'],
-};
-const divisionOf = abbr => Object.keys(DIVISIONS).find(d => DIVISIONS[d].includes(abbr)) || '';
+/* The league itself: ESPN team ids, divisions and primary colors. These are
+   stable year to year, so the Teams tab and the local standings rebuild never
+   depend on a network call that might fail. Live data still overrides this
+   whenever the API answers. */
+const NFL_TEAMS = [
+  { id: '2',  abbreviation: 'BUF', displayName: 'Buffalo Bills',        color: '00338d', division: 'AFC East' },
+  { id: '15', abbreviation: 'MIA', displayName: 'Miami Dolphins',       color: '008e97', division: 'AFC East' },
+  { id: '17', abbreviation: 'NE',  displayName: 'New England Patriots', color: '002244', division: 'AFC East' },
+  { id: '20', abbreviation: 'NYJ', displayName: 'New York Jets',        color: '125740', division: 'AFC East' },
+  { id: '33', abbreviation: 'BAL', displayName: 'Baltimore Ravens',     color: '241773', division: 'AFC North' },
+  { id: '4',  abbreviation: 'CIN', displayName: 'Cincinnati Bengals',   color: 'fb4f14', division: 'AFC North' },
+  { id: '5',  abbreviation: 'CLE', displayName: 'Cleveland Browns',     color: '311d00', division: 'AFC North' },
+  { id: '23', abbreviation: 'PIT', displayName: 'Pittsburgh Steelers',  color: 'ffb612', division: 'AFC North' },
+  { id: '34', abbreviation: 'HOU', displayName: 'Houston Texans',       color: '03202f', division: 'AFC South' },
+  { id: '11', abbreviation: 'IND', displayName: 'Indianapolis Colts',   color: '002c5f', division: 'AFC South' },
+  { id: '30', abbreviation: 'JAX', displayName: 'Jacksonville Jaguars', color: '006778', division: 'AFC South' },
+  { id: '10', abbreviation: 'TEN', displayName: 'Tennessee Titans',     color: '0c2340', division: 'AFC South' },
+  { id: '7',  abbreviation: 'DEN', displayName: 'Denver Broncos',       color: 'fb4f14', division: 'AFC West' },
+  { id: '12', abbreviation: 'KC',  displayName: 'Kansas City Chiefs',   color: 'e31837', division: 'AFC West' },
+  { id: '24', abbreviation: 'LAC', displayName: 'Los Angeles Chargers', color: '0080c6', division: 'AFC West' },
+  { id: '13', abbreviation: 'LV',  displayName: 'Las Vegas Raiders',    color: '000000', division: 'AFC West' },
+  { id: '6',  abbreviation: 'DAL', displayName: 'Dallas Cowboys',       color: '041e42', division: 'NFC East' },
+  { id: '19', abbreviation: 'NYG', displayName: 'New York Giants',      color: '0b2265', division: 'NFC East' },
+  { id: '21', abbreviation: 'PHI', displayName: 'Philadelphia Eagles',  color: '004c54', division: 'NFC East' },
+  { id: '28', abbreviation: 'WSH', displayName: 'Washington Commanders', color: '5a1414', division: 'NFC East' },
+  { id: '3',  abbreviation: 'CHI', displayName: 'Chicago Bears',        color: '0b162a', division: 'NFC North' },
+  { id: '8',  abbreviation: 'DET', displayName: 'Detroit Lions',        color: '0076b6', division: 'NFC North' },
+  { id: '9',  abbreviation: 'GB',  displayName: 'Green Bay Packers',    color: '203731', division: 'NFC North' },
+  { id: '16', abbreviation: 'MIN', displayName: 'Minnesota Vikings',    color: '4f2683', division: 'NFC North' },
+  { id: '1',  abbreviation: 'ATL', displayName: 'Atlanta Falcons',      color: 'a71930', division: 'NFC South' },
+  { id: '29', abbreviation: 'CAR', displayName: 'Carolina Panthers',    color: '0085ca', division: 'NFC South' },
+  { id: '18', abbreviation: 'NO',  displayName: 'New Orleans Saints',   color: 'd3bc8d', division: 'NFC South' },
+  { id: '27', abbreviation: 'TB',  displayName: 'Tampa Bay Buccaneers', color: 'd50a0a', division: 'NFC South' },
+  { id: '22', abbreviation: 'ARI', displayName: 'Arizona Cardinals',    color: '97233f', division: 'NFC West' },
+  { id: '14', abbreviation: 'LAR', displayName: 'Los Angeles Rams',     color: '003594', division: 'NFC West' },
+  { id: '26', abbreviation: 'SEA', displayName: 'Seattle Seahawks',     color: '002244', division: 'NFC West' },
+  { id: '25', abbreviation: 'SF',  displayName: 'San Francisco 49ers',  color: 'aa0000', division: 'NFC West' },
+];
+
+const DIVISIONS = NFL_TEAMS.reduce((acc, t) => {
+  (acc[t.division] = acc[t.division] || []).push(t.abbreviation);
+  return acc;
+}, {});
+const divisionOf = abbr => (NFL_TEAMS.find(t => t.abbreviation === abbr) || {}).division || '';
+const staticTeamById = id => NFL_TEAMS.find(t => String(t.id) === String(id));
 
 function statOf(entry, names, field = 'displayValue') {
   for (const n of names) {
@@ -583,29 +619,23 @@ async function computeStandings() {
     for (const t of await loadTeams()) if (t.abbreviation) roster.set(t.abbreviation, t);
   } catch (_) { /* fall back to bare abbreviations */ }
 
-  const weeks = await Promise.all(
-    Array.from({ length: 18 }, (_, i) =>
-      api(scoreboardUrl({ season: state.season, seasonType: 2, week: i + 1 }), { ttl: 300000 })
-        .catch(() => ({ events: [] }))),
-  );
+  const games = await loadSeasonGames();
   const rec = new Map();
   const touch = t => {
     const k = t.abbreviation;
     if (!rec.has(k)) rec.set(k, { team: t, w: 0, l: 0, t: 0, pf: 0, pa: 0, dw: 0, dl: 0 });
     return rec.get(k);
   };
-  for (const wk of weeks) {
-    for (const g of (wk.events || []).map(normalizeEvent)) {
-      if (g.state !== 'post' || g.home.score === null || g.away.score === null) continue;
-      if (!g.home.team.abbreviation || !g.away.team.abbreviation) continue;
-      const H = touch(g.home.team), A = touch(g.away.team);
-      H.pf += g.home.score; H.pa += g.away.score;
-      A.pf += g.away.score; A.pa += g.home.score;
-      const sameDiv = divisionOf(H.team.abbreviation) === divisionOf(A.team.abbreviation);
-      if (g.home.score > g.away.score)      { H.w++; A.l++; if (sameDiv) { H.dw++; A.dl++; } }
-      else if (g.away.score > g.home.score) { A.w++; H.l++; if (sameDiv) { A.dw++; H.dl++; } }
-      else                                  { H.t++; A.t++; }
-    }
+  for (const g of games) {
+    if (g.state !== 'post' || g.home.score === null || g.away.score === null) continue;
+    if (!g.home.team.abbreviation || !g.away.team.abbreviation) continue;
+    const H = touch(g.home.team), A = touch(g.away.team);
+    H.pf += g.home.score; H.pa += g.away.score;
+    A.pf += g.away.score; A.pa += g.home.score;
+    const sameDiv = divisionOf(H.team.abbreviation) === divisionOf(A.team.abbreviation);
+    if (g.home.score > g.away.score)      { H.w++; A.l++; if (sameDiv) { H.dw++; A.dl++; } }
+    else if (g.away.score > g.home.score) { A.w++; H.l++; if (sameDiv) { A.dw++; H.dl++; } }
+    else                                  { H.t++; A.t++; }
   }
   const groups = Object.entries(DIVISIONS).map(([name, abbrs]) => ({
     name,
@@ -738,10 +768,29 @@ async function renderStandings(view) {
    Teams
    ============================================================ */
 
+/* Prefer ESPN's team list (current logos and colors), but never depend on it:
+   this endpoint has been seen to fail CORS from a file:// page while the rest
+   of the API answers fine, so fall back to the built-in roster. */
 async function loadTeams() {
-  const data = await api(SITE + '/teams', { ttl: 3600000 });
-  const league = ((data.sports || [])[0] || {}).leagues || [];
-  return ((league[0] || {}).teams || []).map(t => t.team).filter(Boolean);
+  try {
+    const data = await api(SITE + '/teams', { ttl: 3600000 });
+    const league = ((data.sports || [])[0] || {}).leagues || [];
+    const teams = ((league[0] || {}).teams || []).map(t => t.team).filter(Boolean);
+    if (teams.length >= 32) return teams;
+  } catch (_) { /* fall through to the built-in roster */ }
+  return NFL_TEAMS.slice();
+}
+
+/* Every regular-season game, used to rebuild standings and team schedules when
+   the dedicated endpoints are unavailable. The scoreboard is the one endpoint
+   everything else already depends on. */
+async function loadSeasonGames() {
+  const weeks = await Promise.all(
+    Array.from({ length: 18 }, (_, i) =>
+      api(scoreboardUrl({ season: state.season, seasonType: 2, week: i + 1 }), { ttl: 300000 })
+        .catch(() => ({ events: [] }))),
+  );
+  return weeks.flatMap(wk => (wk.events || []).map(normalizeEvent));
 }
 
 async function renderTeams(view) {
@@ -791,24 +840,46 @@ async function renderTeamDetail(view, id) {
   const body = el('div', {}, el('div', { class: 'skel', style: 'height:110px' }));
   view.append(body);
 
-  let info = {}, sched = {};
-  try {
-    [info, sched] = await Promise.all([
-      api(SITE + '/teams/' + id, { ttl: 120000 }).catch(() => ({})),
-      api(SITE + '/teams/' + id + '/schedule?season=' + state.season, { ttl: 120000 }).catch(() => ({})),
-    ]);
-  } catch (err) {
-    body.replaceChildren(errorBox('Could not load this team.', err));
-    return;
-  }
+  // Neither team endpoint is required: identity falls back to the built-in
+  // roster and the schedule falls back to the season scoreboard crawl.
+  const [info, sched] = await Promise.all([
+    api(SITE + '/teams/' + id, { ttl: 120000 }).catch(() => ({})),
+    api(SITE + '/teams/' + id + '/schedule?season=' + state.season, { ttl: 120000 }).catch(() => ({})),
+  ]);
 
-  const team = info.team || (sched.team || {});
-  if (!team.id && !team.displayName) {
+  const team = info.team || sched.team || staticTeamById(id);
+  if (!team) {
     body.replaceChildren(errorBox('No data returned for team ' + id + '.'));
     return;
   }
+
+  let games = (sched.events || []).map(normalizeEvent);
+  let derived = false;
+  if (!games.length) {
+    try {
+      games = (await loadSeasonGames())
+        .filter(g => String(g.home.id) === String(id) || String(g.away.id) === String(id));
+      derived = games.length > 0;
+    } catch (_) { games = []; }
+  }
+  games.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const mine = g => String(g.home.id) === String(id) ? g.home : g.away;
+  const theirs = g => String(g.home.id) === String(id) ? g.away : g.home;
+
   const recItems = (team.record && team.record.items) || [];
-  const overall = (recItems.find(r => r.type === 'total' || r.description === 'Overall Record') || recItems[0] || {}).summary || '';
+  let overall = (recItems.find(r => r.type === 'total' || r.description === 'Overall Record')
+    || recItems[0] || {}).summary || '';
+  if (!overall && games.length) {
+    let w = 0, l = 0, t = 0;
+    for (const g of games) {
+      if (g.state !== 'post' || mine(g).score === null || theirs(g).score === null) continue;
+      if (mine(g).score > theirs(g).score) w++;
+      else if (mine(g).score < theirs(g).score) l++;
+      else t++;
+    }
+    if (w + l + t) overall = t ? `${w}-${l}-${t}` : `${w}-${l}`;
+  }
 
   const out = el('div', {});
   out.append(el('div', { class: 'thero', style: 'border-left-color:' + teamColor(team) },
@@ -829,36 +900,38 @@ async function renderTeamDetail(view, id) {
     ),
   ));
 
-  const next = (team.nextEvent || [])[0];
+  const nextApi = (team.nextEvent || [])[0];
+  const next = nextApi ? normalizeEvent(nextApi) : games.find(g => g.state !== 'post');
   if (next) {
-    const g = normalizeEvent(next);
-    out.append(el('h2', { class: 'sec' }, g.state === 'in' ? 'Playing now' : 'Next game'));
-    out.append(el('div', { class: 'games' }, gameCard(g)));
+    out.append(el('h2', { class: 'sec' }, next.state === 'in' ? 'Playing now' : 'Next game'));
+    out.append(el('div', { class: 'games' }, gameCard(next)));
   }
 
-  const events = (sched.events || []);
   out.append(el('h2', { class: 'sec' }, state.season + ' schedule'));
-  if (!events.length) {
+  if (!games.length) {
     out.append(el('div', { class: 'empty' }, 'No schedule returned for this team.'));
   } else {
-    out.append(el('div', { class: 'schedlist' }, events.map(ev => {
-      const g = normalizeEvent(ev);
-      const isHome = String(g.home.id) === String(team.id);
-      const me = isHome ? g.home : g.away, opp = isHome ? g.away : g.home;
+    out.append(el('div', { class: 'schedlist' }, games.map(g => {
+      const isHome = String(g.home.id) === String(id);
+      const me = mine(g), opp = theirs(g);
       const done = g.state === 'post' && me.score !== null && opp.score !== null;
       const res = done ? (me.score > opp.score ? 'W' : me.score < opp.score ? 'L' : 'T') : '';
-      const wk = ev.week && ev.week.number;
-      const type = ev.seasonType && ev.seasonType.type;
       return el('a', { class: 'srow', href: g.link, target: '_blank', rel: 'noopener' },
-        el('span', { class: 'wk' }, type === 1 ? 'P' + wk : type === 3 ? 'PO' : (wk ? 'Wk ' + wk : '')),
+        el('span', { class: 'wk' }, g.seasonType === 1 ? 'P' + g.week
+          : g.seasonType === 3 ? 'PO' : (g.week ? 'Wk ' + g.week : '')),
         el('img', { src: logoFor(opp.team), alt: '', loading: 'lazy',
                     onerror: e => { e.target.style.visibility = 'hidden'; } }),
         el('span', { class: 'opp' }, (isHome ? 'vs ' : '@ ') + opp.full),
         el('span', { class: 'res ' + (res === 'W' ? 'pos' : res === 'L' ? 'neg' : '') }, res),
-        el('span', { class: 'sc' }, done ? me.score + '-' + opp.score : (g.state === 'in' ? 'Live' : fmtTime(g.date))),
+        el('span', { class: 'sc' }, done ? me.score + '-' + opp.score
+          : (g.state === 'in' ? 'Live' : fmtTime(g.date))),
         el('span', { class: 'dt' }, fmtDay(g.date)),
       );
     })));
+    if (derived) {
+      out.append(el('div', { class: 'stamp', style: 'margin-top:8px' },
+        'Schedule assembled from the weekly scoreboard — regular season only.'));
+    }
   }
   body.replaceWith(out);
 }
