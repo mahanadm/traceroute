@@ -115,28 +115,9 @@ const teamSchedule = { team: { ...T.BUF, id: '2' }, events: [
     links: [{ rel: ['summary'], href: 'https://espn.com/g/9' }] },
 ] };
 
-const leaders = { leaders: { categories: [
-  { name: 'passingYards', displayName: 'Passing Yards', leaders: [
-    { displayValue: '661', value: 661, athlete: { id: '1', displayName: 'Josh Allen', position: { abbreviation: 'QB' }, links: [{ href: 'https://espn.com/a/1' }] }, team: { id: '2', abbreviation: 'BUF' } },
-    { displayValue: '640', value: 640, athlete: { id: '2', displayName: 'Patrick Mahomes', position: { abbreviation: 'QB' }, links: [] }, team: { id: '12', abbreviation: 'KC' } }] },
-  { name: 'rushingYards', displayName: 'Rushing Yards', leaders: [
-    { displayValue: '244', value: 244, athlete: { id: '3', displayName: 'Kenneth Walker III', position: { abbreviation: 'RB' } }, team: { id: '26', abbreviation: 'SEA' } }] },
-  { name: 'empty', displayName: 'Empty Category', leaders: [] },
-] } };
-
 const news = { articles: [
   { headline: 'Bills roll past Jets in the opener', description: 'Josh Allen threw for four scores as Buffalo cruised.', published: new Date(Date.now()-3*3600*1000).toISOString(), type: 'Recap', images: [{ url: 'https://a.espncdn.com/photo/1.jpg', caption: 'Allen' }], links: { web: { href: 'https://espn.com/n/1' } } },
   { headline: 'Injury report: Week 2', description: 'Everything you need to know before Sunday.', published: '2026-09-19T14:00Z', type: 'Story', images: [], links: { web: { href: 'https://espn.com/n/2' } } },
 ] };
 
-// site.web.api.espn.com/apis/common/v3 shape: athlete carries fullName, and
-// some rows are unresolved $refs that must be dropped rather than rendered.
-const leadersV3 = { leaders: { categories: [
-  { name: 'passingYards', displayName: 'Passing Yards', leaders: [
-    { displayValue: '661', value: 661, athlete: { id: '1', fullName: 'Josh Allen', position: { abbreviation: 'QB' }, links: [{ href: 'https://espn.com/a/1' }] }, team: { id: '2', abbreviation: 'BUF' } },
-    { displayValue: '640', value: 640, athlete: { $ref: 'https://sports.core.api.espn.com/athletes/2' }, team: { id: '12', abbreviation: 'KC' } }] },
-  { name: 'receivingYards', displayName: 'Receiving Yards', leaders: [
-    { displayValue: '188', value: 188, athlete: { id: '4', shortName: 'A. St. Brown', position: { abbreviation: 'WR' } }, team: { id: '8', abbreviation: 'DET' } }] },
-] } };
-
-module.exports = { scoreboard, standings, teams, teamDetail, teamSchedule, leaders, leadersV3, news };
+module.exports = { scoreboard, standings, teams, teamDetail, teamSchedule, news };

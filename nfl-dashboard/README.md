@@ -1,8 +1,7 @@
 # NFL Dashboard
 
 A single-file, zero-dependency dashboard for the current NFL season: live scores,
-the full week-by-week schedule, standings, every team's season, statistical
-leaders and headlines.
+the full week-by-week schedule, standings, every team's season and headlines.
 
 **Open `index.html` in a browser.** There is no build step and nothing to install.
 
@@ -22,7 +21,6 @@ cd nfl-dashboard && python3 -m http.server 8000
 | **Games** | Every game in the selected week, grouped by day. Live games show quarter, clock, down & distance, possession and last play; finals show the box score; upcoming games show kickoff time, TV and the spread/total. A ticker across the top carries the whole slate. |
 | **Standings** | All eight divisions with W-L-T, win %, points for/against, point differential, division record and current streak. Toggle to a straight conference ranking. Click any team to open it. |
 | **Teams** | All 32 teams by conference and division. Each opens to its record, division position, next game and full season schedule with results. |
-| **Leaders** | Season statistical leaders by category. Tried from two different ESPN hosts; if neither answers, the tab removes itself rather than showing an error. |
 | **News** | Latest headlines. |
 
 Also: light/dark toggle, deep links (`#standings`, `#teams/2`), keyboard-free week
@@ -35,7 +33,7 @@ ESPN's public JSON endpoints, fetched directly from your browser:
 - `site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard`
 - `site.api.espn.com/apis/v2/sports/football/nfl/standings`
 - `.../teams`, `.../teams/{id}`, `.../teams/{id}/schedule`
-- `.../leaders`, `.../news`
+- `.../news`
 
 These are undocumented and unofficial. They are widely used and stable in
 practice, but ESPN can change or withdraw them without notice — so the page is
@@ -52,9 +50,6 @@ written to degrade rather than break:
   ESPN's list is still preferred when it answers, for current logos and colors.
 - If a team's own endpoints are unavailable, its record and full schedule are
   **derived from the weekly scoreboard** instead, and the page says so.
-- **Leaders** is probed at startup across several sources. If none of them
-  answer, the tab is dropped before it can be clicked and `#leaders` redirects
-  to Games — so a dead endpoint never becomes a broken page.
 
 The season, season type and current week are read from the API's own scoreboard
 response, so the dashboard follows the real NFL calendar instead of a hardcoded
