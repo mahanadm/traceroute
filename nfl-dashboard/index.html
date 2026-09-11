@@ -191,6 +191,7 @@ tbody tr:hover{background:var(--panel-2);cursor:pointer}
 
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const CORE = 'https://site.api.espn.com/apis/v2/sports/football/nfl';
+const WEB  = 'https://site.web.api.espn.com/apis/common/v3/sports/football/nfl';
 
 const SEASON_TYPES = { 1: 'Preseason', 2: 'Regular Season', 3: 'Postseason' };
 const POST_WEEKS = { 1: 'Wild Card', 2: 'Divisional', 3: 'Conference', 4: 'Pro Bowl', 5: 'Super Bowl' };
@@ -210,6 +211,7 @@ const state = {
   week: null,
   teamId: null,        // set => team detail view
   standingsView: 'division',
+  leadersOk: null,     // null = still probing, false = hide the tab entirely
   lastFetch: null,
   timer: null,
 };
@@ -940,6 +942,54 @@ async function renderTeamDetail(view, id) {
    Leaders
    ============================================================ */
 
+/* ESPN serves leaders from more than one place and they don't fail together.
+   Try each; whichever answers with usable categories wins. */
+const LEADER_SOURCES = [
+  () => WEB + '/leaders?season=' + state.season + '&seasontype=' + state.seasonType,
+  () => SITE + '/leaders?season=' + state.season + '&seasontype=' + state.seasonType,
+  () => SITE + '/leaders',
+];
+
+/** Pull categories out of whichever payload shape came back. */
+function parseLeaders(data) {
+  const cats = (data.leaders && data.leaders.categories) || data.categories
+    || (Array.isArray(data.leaders) ? data.leaders : []) || [];
+  return cats.map(cat => {
+    const rows = (cat.leaders || []).map(ldr => {
+      const ath = ldr.athlete || ldr.player || {};
+      // Unresolved $ref entries carry no name; they're useless to render.
+      const who = ath.displayName || ath.fullName || ath.shortName || '';
+      if (!who) return null;
+      return {
+        who,
+        pos: (ath.position && (ath.position.abbreviation || ath.position.name)) || '',
+        team: ldr.team || ath.team || {},
+        value: ldr.displayValue ?? ldr.value ?? '',
+        href: (ath.links || []).map(l => l.href)[0] || (ldr.links || []).map(l => l.href)[0] || '',
+      };
+    }).filter(Boolean);
+    return { name: cat.displayName || cat.name || 'Leaders', rows };
+  }).filter(c => c.rows.length);
+}
+
+/* Resolved once and shared: boot probes it so a dead Leaders tab is removed
+   before it can be clicked, rather than greeting anyone with an error. */
+let leadersPromise = null;
+function leadersData() {
+  if (!leadersPromise) {
+    leadersPromise = (async () => {
+      for (const makeUrl of LEADER_SOURCES) {
+        try {
+          const cats = parseLeaders(await api(makeUrl(), { ttl: 300000 }));
+          if (cats.length) return cats;
+        } catch (_) { /* try the next source */ }
+      }
+      return null;
+    })();
+  }
+  return leadersPromise;
+}
+
 async function renderLeaders(view) {
   view.append(el('div', { class: 'toolbar' },
     el('span', { class: 'stamp' }, 'Season leaders · ' + state.season + ' ' + SEASON_TYPES[state.seasonType])));
@@ -947,38 +997,24 @@ async function renderLeaders(view) {
     Array.from({ length: 6 }, () => el('div', { class: 'skel', style: 'height:200px' })));
   view.append(body);
 
-  let data;
-  try {
-    data = await api(SITE + '/leaders?season=' + state.season + '&seasontype=' + state.seasonType, { ttl: 300000 });
-  } catch (err) {
-    body.replaceChildren(errorBox('Could not load statistical leaders.', err));
-    return;
-  }
-
-  const cats = (data.leaders && data.leaders.categories) || data.categories || [];
-  const shown = cats.filter(c => (c.leaders || []).length);
-  if (!shown.length) {
+  const shown = await leadersData();
+  if (!shown) {
     body.replaceChildren(el('div', { class: 'empty' },
-      'No leaders published yet for ' + state.season + '. They fill in once games are played.'));
+      'Statistical leaders are unavailable from ESPN right now.'));
     return;
   }
 
   body.replaceChildren(...shown.map(cat => el('div', { class: 'leadbox' },
-    el('h3', {}, cat.displayName || cat.name),
-    (cat.leaders || []).slice(0, 5).map((ldr, i) => {
-      const ath = ldr.athlete || {};
-      const tm = ldr.team || ath.team || {};
-      return el('a', { class: 'lrow', href: (ath.links || []).map(l => l.href)[0] || '#',
-                       target: '_blank', rel: 'noopener' },
+    el('h3', {}, cat.name),
+    cat.rows.slice(0, 5).map((r, i) =>
+      el(r.href ? 'a' : 'div', { class: 'lrow', href: r.href || null,
+                                 target: r.href ? '_blank' : null, rel: r.href ? 'noopener' : null },
         el('span', { class: 'rk' }, i + 1),
-        el('img', { src: logoFor(tm), alt: '', loading: 'lazy',
+        el('img', { src: logoFor(r.team), alt: '', loading: 'lazy',
                     onerror: e => { e.target.style.visibility = 'hidden'; } }),
-        el('span', { class: 'who' },
-          (ath.displayName || ath.shortName || 'Unknown')
-          + (ath.position && ath.position.abbreviation ? ' · ' + ath.position.abbreviation : '')),
-        el('span', { class: 'val' }, ldr.displayValue ?? ldr.value ?? ''),
-      );
-    }),
+        el('span', { class: 'who' }, r.who + (r.pos ? ' · ' + r.pos : '')),
+        el('span', { class: 'val' }, r.value),
+      )),
   )));
 }
 
@@ -1059,7 +1095,9 @@ function scheduleRefresh(hasLive) {
 
 function buildTabs() {
   const nav = $('#tabs');
-  nav.replaceChildren(...TABS.map(t => el('button', {
+  // A tab with no data behind it is worse than no tab at all.
+  const visible = TABS.filter(t => !(t.id === 'leaders' && state.leadersOk === false));
+  nav.replaceChildren(...visible.map(t => el('button', {
     role: 'tab', 'aria-selected': state.tab === t.id,
     onclick: () => { state.tab = t.id; if (t.id !== 'teams') state.teamId = null; writeHash(); render(); },
   }, t.label)));
@@ -1141,6 +1179,14 @@ async function boot() {
     state.week = state.week || 1;
   }
   render();
+
+  // Probe leaders in the background; drop the tab if no source answers, so a
+  // dead tab is gone before anyone clicks it. Runs after the season is known.
+  leadersData().then(cats => {
+    state.leadersOk = !!cats;
+    if (!cats && state.tab === 'leaders') { state.tab = 'games'; render(); }
+    else buildTabs();
+  });
 }
 
 boot();

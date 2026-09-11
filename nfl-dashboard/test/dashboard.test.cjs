@@ -38,6 +38,7 @@ const check = (name, cond, extra='') => { console.log((cond?'  PASS  ':'  FAIL  
     if (/\/teams\/\d+\/schedule/.test(url)) return route.fulfill(json(F.teamSchedule));
     if (/\/teams\/\d+(\?|$)/.test(url)) return route.fulfill(json(F.teamDetail));
     if (/\/teams(\?|$)/.test(url)) return route.fulfill(json(F.teams));
+    if (/site\.web\.api.*\/leaders/.test(url)) return route.fulfill(json(F.leadersV3));
     if (/\/leaders/.test(url)) return route.fulfill(json(F.leaders));
     if (/\/news/.test(url)) return route.fulfill(json(F.news));
     if (/\/scoreboard/.test(url)) return route.fulfill(json(F.scoreboard));
@@ -119,9 +120,12 @@ const check = (name, cond, extra='') => { console.log((cond?'  PASS  ':'  FAIL  
   console.log('\n--- LEADERS ---');
   await page.click('nav.tabs button:has-text("Leaders")');
   await page.waitForSelector('.leadbox', { timeout: 10000 });
-  check('empty category filtered out', (await page.$$('.leadbox')).length === 2);
+  check('v3 leaders payload parsed', (await page.$$('.leadbox')).length === 2);
   check('leader value', (await page.textContent('.leadbox')).includes('661'));
   check('position appended', (await page.textContent('.leadbox')).includes('Josh Allen · QB'));
+  check('unresolved $ref rows dropped', (await page.$$('.leadbox:first-of-type .lrow')).length === 1,
+    (await page.textContent('.leadbox')).trim());
+  check('shortName used when fullName absent', (await page.textContent('#view')).includes('A. St. Brown'));
   await page.screenshot({ path: OUT + '/05-leaders.png', fullPage: true });
 
   console.log('\n--- NEWS ---');
@@ -208,6 +212,39 @@ const check = (name, cond, extra='') => { console.log((cond?'  PASS  ':'  FAIL  
   check('team names are not truncated', await pT.evaluate(() =>
     [...document.querySelectorAll('.tcard .nm')].every(n => n.scrollWidth <= n.clientWidth + 1)));
   await pT.screenshot({ path: OUT + '/11-teams-no-endpoint.png', fullPage: true });
+
+  const pL = await ctx.newPage();
+  await pL.route('**/*', route => {
+    const url = route.request().url();
+    if (url.startsWith('file://')) return route.continue();
+    if (/a\.espncdn\.com|\.jpg|\.png/.test(url)) return route.abort();
+    if (/site\.web\.api/.test(url)) return route.abort();          // primary leaders host down
+    if (/\/leaders/.test(url)) return route.fulfill(json(F.leaders));
+    if (/\/scoreboard/.test(url)) return route.fulfill(json(F.scoreboard));
+    return route.fulfill({ status: 404, body: '{}' });
+  });
+  await pL.goto(PAGE + '#leaders');
+  await pL.waitForSelector('.leadbox', { timeout: 20000 });
+  check('leaders fall through to the legacy source', (await pL.$$('.leadbox')).length === 2,
+    (await pL.textContent('.leadbox')).slice(0, 60));
+  check('Leaders tab kept when a source works', (await pL.$$('nav.tabs button')).length === 5);
+
+  const pX = await ctx.newPage();
+  await pX.route('**/*', route => {
+    const url = route.request().url();
+    if (url.startsWith('file://')) return route.continue();
+    if (/a\.espncdn\.com|\.jpg|\.png/.test(url)) return route.abort();
+    if (/\/leaders/.test(url)) return route.abort();                // every leaders source dead
+    if (/\/scoreboard/.test(url)) return route.fulfill(json(F.scoreboard));
+    return route.fulfill({ status: 404, body: '{}' });
+  });
+  await pX.goto(PAGE + '#leaders');
+  await pX.waitForSelector('.game', { timeout: 20000 });
+  const tabNames = await pX.$$eval('nav.tabs button', bs => bs.map(b => b.textContent));
+  check('dead Leaders tab removes itself', !tabNames.includes('Leaders'), tabNames.join(','));
+  check('#leaders deep link redirects to Games', (await pX.$$('.game')).length > 0);
+  check('no error box left on screen', (await pX.$$('.note')).length === 0);
+  await pX.screenshot({ path: OUT + '/12-leaders-removed.png', fullPage: true });
 
   const p3 = await ctx.newPage();
   await p3.route('**/*', route => route.request().url().startsWith('file://') ? route.continue() : route.abort());
